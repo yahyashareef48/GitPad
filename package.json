@@ -1,0 +1,45 @@
+{
+  "name": "gitpad",
+  "displayName": "GitPad",
+  "description": "A Git-powered workspace for notes, to-do lists, and flowcharts — all inside VS Code.",
+  "version": "0.0.1",
+  "publisher": "yahyashareef48",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "git",
+    "notes",
+    "todo",
+    "flowchart",
+    "github"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yahyashareef48/GitPad.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yahyashareef48/GitPad/issues"
+  },
+  "homepage": "https://github.com/yahyashareef48/GitPad#readme",
+  "icon": "icon.png",
+  "activationEvents": [],
+  "main": "./out/extension.js",
+  "contributes": {},
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.x",
+    "@types/vscode": "^1.90.0",
+    "typescript": "^5.x",
+    "@vscode/vsce": "^3.x"
+  }
+}
