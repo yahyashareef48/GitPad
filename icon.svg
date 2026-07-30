@@ -1,0 +1,9 @@
+<!-- GitPad mark 1 — "G" with a vertical spur (no Google crossbar) ending in a commit node.
+     Colour lives in the single color="" value below. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" color="#F05133" role="img" aria-label="GitPad">
+  <g fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round">
+    <path d="M150,182 A62,62 0 1 1 184,112"/>
+    <path d="M184,112 V150"/>
+  </g>
+  <circle cx="184" cy="160" r="16" fill="currentColor"/>
+</svg>

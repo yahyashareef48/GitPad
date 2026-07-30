@@ -3,7 +3,7 @@
   "displayName": "GitPad",
   "description": "A Git-powered workspace for notes, to-do lists, and flowcharts — all inside VS Code.",
   "version": "0.0.1",
-  "publisher": "yahyashareef48",
+  "publisher": "YahyaShareef",
   "license": "MIT",
   "engines": {
     "vscode": "^1.90.0"
