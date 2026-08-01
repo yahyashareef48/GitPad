@@ -29,12 +29,21 @@ export function App({ bridge }: AppProps) {
   // buttons flash on every reload for users who already have a vault.
   const [vault, setVault] = useState<VaultState | undefined>(undefined);
   const [nodes, setNodes] = useState<readonly TreeNodeDto[]>([]);
+  // Purely a view concern: the user asked to switch vaults but has not yet
+  // picked one. The host knows nothing about it, and cancelling costs nothing.
+  const [choosing, setChoosing] = useState(false);
 
   useEffect(() => {
     const unsubscribe = bridge.onMessage((message) => {
       switch (message.type) {
         case 'vaultState':
           setVault(message.state);
+
+          // A vault opened, so the switch is over. Cancelling the OS dialog
+          // sends nothing, which correctly leaves the chooser on screen.
+          if (message.state.kind === 'ready') {
+            setChoosing(false);
+          }
           break;
 
         case 'tree':
@@ -64,9 +73,22 @@ export function App({ bridge }: AppProps) {
     );
   }
 
+  // Switching vaults: same screen as first run, plus a way back. Going
+  // straight to the OS folder dialog from "Change" leaves no exit if it was a
+  // misclick, and no explanation of what is about to happen.
+  if (choosing) {
+    return (
+      <WelcomeView
+        onCreate={() => bridge.post({ type: 'createVault' })}
+        onOpen={() => bridge.post({ type: 'openVault' })}
+        onCancel={() => setChoosing(false)}
+      />
+    );
+  }
+
   return (
     <div className="shell">
-      <VaultHeader root={vault.root} onChange={() => bridge.post({ type: 'openVault' })} />
+      <VaultHeader root={vault.root} onChange={() => setChoosing(true)} />
 
       <div className="shell__body">
         <NoteTree nodes={nodes} onOpen={(id) => bridge.post({ type: 'openDocument', id })} />
