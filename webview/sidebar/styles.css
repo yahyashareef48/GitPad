@@ -155,6 +155,100 @@ body {
   outline: 1px solid var(--vscode-focusBorder);
 }
 
+/* ---- Search ---- */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 8px;
+  padding: 0 6px;
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+}
+
+.search:focus-within {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.search__icon {
+  display: flex;
+  opacity: 0.7;
+}
+
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 0;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.search__input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.search__clear {
+  display: flex;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: transparent;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.search__clear:hover {
+  opacity: 1;
+}
+
+/* ---- Collapsible sections ---- */
+
+.section {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+}
+
+.section__header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.section__header:hover {
+  opacity: 1;
+}
+
+/* A row outside the virtualised tree, so it lays itself out. */
+.row--flat {
+  width: 100%;
+  height: 22px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
 /* ---- Context menu ---- */
 
 .menu {

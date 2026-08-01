@@ -14,11 +14,13 @@ import { Icon } from './Icon';
 
 interface NoteTreeProps {
   readonly nodes: readonly TreeNodeDto[];
+  /** Differs between "no notes" and "nothing matched", which mean different things. */
+  readonly emptyMessage: string;
   readonly onOpen: (id: string) => void;
   readonly onContextMenu: (node: TreeNodeDto, x: number, y: number) => void;
 }
 
-export function NoteTree({ nodes, onOpen, onContextMenu }: NoteTreeProps) {
+export function NoteTree({ nodes, emptyMessage, onOpen, onContextMenu }: NoteTreeProps) {
   const size = useElementSize();
 
   /*
@@ -35,7 +37,7 @@ export function NoteTree({ nodes, onOpen, onContextMenu }: NoteTreeProps) {
   return (
     <div className="tree" ref={size.ref}>
       {nodes.length === 0 ? (
-        <div className="placeholder">No notes yet.</div>
+        <div className="placeholder">{emptyMessage}</div>
       ) : (
         <Tree<TreeNodeDto>
           data={nodes as TreeNodeDto[]}

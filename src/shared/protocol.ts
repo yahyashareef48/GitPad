@@ -88,4 +88,17 @@ export type HostToSidebar =
    * small, and the filesystem -- not the webview -- is the source of truth. A
    * patch stream would introduce a second copy that can drift from the disk.
    */
-  | { readonly type: 'tree'; readonly nodes: readonly TreeNodeDto[] };
+  | { readonly type: 'tree'; readonly nodes: readonly TreeNodeDto[] }
+  /**
+   * Most-recently-opened documents, newest first.
+   *
+   * Device-local and never synced: "recent on this machine" is not a fact
+   * about the vault, and seeing your laptop's history on your desktop would
+   * be noise rather than continuity.
+   */
+  | { readonly type: 'recentlyOpened'; readonly items: readonly RecentItemDto[] };
+
+export interface RecentItemDto {
+  readonly id: string;
+  readonly name: string;
+}

@@ -8,6 +8,7 @@ import { OutputChannelLogger } from './platform/OutputChannelLogger';
 import { SystemClock } from './platform/SystemClock';
 import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
+import { RecentlyOpened } from './ui/vault/RecentlyOpened';
 import { VaultController } from './ui/vault/VaultController';
 
 /*
@@ -35,7 +36,20 @@ export function activate(context: vscode.ExtensionContext): void {
   // one type to register.
   const tree = new VaultTree(fs, logger, new Set([NOTE_EXTENSION]));
   const notes = new NoteService(fs, clock, logger);
-  const sidebar = new SidebarViewProvider(context.extensionUri, vault, tree, notes, logger);
+
+  const recentLimit = vscode.workspace
+    .getConfiguration()
+    .get<number>('gitpad.sidebar.recentlyOpenedCount', 5);
+  const recent = new RecentlyOpened(context.globalState, recentLimit);
+
+  const sidebar = new SidebarViewProvider(
+    context.extensionUri,
+    vault,
+    tree,
+    notes,
+    recent,
+    logger,
+  );
 
   context.subscriptions.push(
     logger,

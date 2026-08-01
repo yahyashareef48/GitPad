@@ -69,6 +69,12 @@
           "type": "string",
           "default": "",
           "markdownDescription": "Absolute path to your GitPad vault — the folder your notes live in. Keep this separate from any code project: GitPad manages everything inside it."
+        },
+        "gitpad.sidebar.recentlyOpenedCount": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "markdownDescription": "How many notes to list under **Recently opened**. Set to `0` to hide the section. This list is stored per machine and is never synced."
         }
       }
     }

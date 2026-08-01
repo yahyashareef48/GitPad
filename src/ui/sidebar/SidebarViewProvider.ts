@@ -5,6 +5,7 @@ import type { NoteService } from '../../core/vault/NoteService';
 import type { VaultLayout } from '../../core/vault/VaultLayout';
 import type { VaultTree } from '../../core/vault/VaultTree';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
+import type { RecentlyOpened } from '../vault/RecentlyOpened';
 import type { VaultController } from '../vault/VaultController';
 import { renderWebviewHtml } from '../webview/WebviewHost';
 
@@ -31,11 +32,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     private readonly vault: VaultController,
     private readonly tree: VaultTree,
     private readonly notes: NoteService,
+    private readonly recent: RecentlyOpened,
     private readonly logger: Logger,
   ) {
     this.subscriptions.push(
       this.vault.onDidChangeState((state) => {
         this.post({ type: 'vaultState', state });
+        this.postRecent();
         void this.refreshTree();
       }),
       this.vault.onDidChangeContents(() => {
@@ -84,6 +87,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         // Only safe to send state once the webview says it is listening --
         // messages posted to a still-loading webview are dropped silently.
         this.post({ type: 'vaultState', state: this.vault.state });
+        this.postRecent();
         await this.refreshTree();
         break;
 
@@ -229,9 +233,27 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       const document = await vscode.workspace.openTextDocument(vscode.Uri.file(id));
 
       await vscode.window.showTextDocument(document, { preview: true });
+      await this.recent.record(id);
+      this.postRecent();
     } catch (error) {
       this.logger.error(`Could not open ${id}`, error);
+
+      // A recent entry pointing at a file that is gone is worse than no entry:
+      // it offers an action that cannot work. Drop it so the list self-heals.
+      await this.recent.forget(id);
+      this.postRecent();
+
+      vscode.window.showErrorMessage(`Could not open “${vscode.Uri.file(id).path}”.`);
     }
+  }
+
+  private postRecent(): void {
+    const state = this.vault.state;
+
+    this.post({
+      type: 'recentlyOpened',
+      items: state.kind === 'ready' ? this.recent.list(state.root) : [],
+    });
   }
 
   private async refreshTree(): Promise<void> {

@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
+import { filterTree } from '../../src/shared/filterTree';
 import type {
   HostToSidebar,
+  RecentItemDto,
   SidebarToHost,
   TreeNodeDto,
   VaultState,
@@ -9,6 +11,8 @@ import type {
 import type { Bridge } from '../shared/rpc';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NoteTree } from './NoteTree';
+import { RecentlyOpenedList } from './RecentlyOpenedList';
+import { SearchBox } from './SearchBox';
 import { VaultHeader } from './VaultHeader';
 import { WelcomeView } from './WelcomeView';
 
@@ -36,6 +40,17 @@ export function App({ bridge }: AppProps) {
   const [menu, setMenu] = useState<{ node: TreeNodeDto; x: number; y: number } | undefined>(
     undefined,
   );
+  const [recent, setRecent] = useState<readonly RecentItemDto[]>([]);
+  const [query, setQuery] = useState('');
+
+  /*
+   * Filtered locally rather than by asking the host.
+   *
+   * The webview already holds the whole tree, so matching here is instant and
+   * survives a slow or busy extension host. Memoised because the tree is
+   * rebuilt on every keystroke otherwise.
+   */
+  const visible = useMemo(() => filterTree(nodes, query), [nodes, query]);
 
   useEffect(() => {
     const unsubscribe = bridge.onMessage((message) => {
@@ -52,6 +67,10 @@ export function App({ bridge }: AppProps) {
 
         case 'tree':
           setNodes(message.nodes);
+          break;
+
+        case 'recentlyOpened':
+          setRecent(message.items);
           break;
       }
     });
@@ -128,9 +147,21 @@ export function App({ bridge }: AppProps) {
         onSettings={() => bridge.post({ type: 'openSettings' })}
       />
 
+      <SearchBox value={query} onChange={setQuery} />
+
+      {/* Hidden while filtering: the point of a filter is to narrow what is on
+          screen, and a recents list that ignores the query fights that. */}
+      {query === '' ? (
+        <RecentlyOpenedList
+          items={recent}
+          onOpen={(id) => bridge.post({ type: 'openDocument', id })}
+        />
+      ) : null}
+
       <div className="shell__body">
         <NoteTree
-          nodes={nodes}
+          nodes={visible}
+          emptyMessage={query === '' ? 'No notes yet.' : `Nothing matches “${query}”.`}
           onOpen={(id) => bridge.post({ type: 'openDocument', id })}
           onContextMenu={(node, x, y) => setMenu({ node, x, y })}
         />
