@@ -20,7 +20,7 @@ we did, and where the two diverged.
 |---|---|---|
 | **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | **Done** |
 | **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | **Done** |
-| **M2** | Custom editor with plain-text editing — proves the editor plumbing | Not started |
+| **M2** | Custom editor with plain-text editing — proves the editor plumbing | **Done** |
 | **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus, wikilinks | Not started |
 | **M4** | Trash, search + link index + backlinks, `.md` import/export, settings page → **Phase 1 ships** | Not started |
 | **M5** | Auth, repo create/clone wizard, GitService, manual "Sync now" | Not started |
@@ -41,7 +41,7 @@ as they're answered.
 
 | # | Question | Resolves at | Outcome |
 |---|---|---|---|
-| 1 | Does the Ctrl+Z bridge (VS Code → RPC → ProseMirror history) feel correct — right granularity, focus reaches us, no drift between VS Code's edit count and ProseMirror's? | M2 | Open |
+| 1 | Does the Ctrl+Z bridge (VS Code → RPC → ProseMirror history) feel correct? | M2 | **Answered: yes.** `CustomDocumentEditEvent` with both sides of each change captured works cleanly, confirmed by hand. Two details made it feel right rather than merely function: debouncing edits at 400 ms so one Ctrl+Z removes a burst of typing rather than a character, and restoring the caret after remote text is applied — without it, undo threw the cursor to the end of the note on every step. Still to re-verify against ProseMirror's own history in M3. |
 | 2 | Which Crepe blocks survive a markdown round trip, and which get disabled? | M3 | Open |
 | 3 | How much work is restyling Crepe onto VS Code theme variables, really? | M3 | Open |
 | 4 | Does `react-arborist` + hand-built context menus reach parity with a native tree? | M1 | **Answered: yes, at a cost.** Virtualisation, keyboard nav and drag-and-drop came free. Context menus, the search box, icons and empty states were all hand-built. Roughly a day of work that a native `TreeView` would have given away — bought the search box, which a native tree cannot host at all. |
@@ -56,6 +56,35 @@ as they're answered.
 ---
 
 ## Log
+
+### 2026-08-01 — M2 complete: the custom editor
+**Commits:** `b02f440`, `f0a7707`, `093ffa1`
+**Milestone:** M2 → **Done**
+
+`.pad` files open in GitPad's own editor. `CustomEditorProvider` with a custom document, so this
+code owns content, dirty state and the undo stack — the arrangement chosen in §1.4 specifically so
+a rich editor's own history would not fight VS Code's.
+
+- **The undo bridge works** (open question 1). Verified by hand.
+- **Auto-save**, because VS Code's `files.autoSave` does not apply to custom editors. Default on:
+  nobody expects to save a note, and Phase 2's sync waits for files to be written before committing.
+- **External change reload** — a clean document reloads; a dirty one raises a conflict rather than
+  discarding unsaved work. Our own saves are recognised by content comparison, not timestamps.
+- The editing surface is a **plain textarea**, deliberately. Milkdown lands in M3 on plumbing
+  already known to be sound.
+
+**Bug worth remembering.** `backupCustomDocument` returns `destination.toString()`, so `backupId`
+comes back as a URI string — `file:///c%3A/…`. Passing it to a path-based read resolved it as
+`C:\file:\c%3A\…` and threw ENOENT, which made any note with a recorded backup **permanently
+unopenable**. Fixed by parsing it as a URI, plus falling back to the file on disk when a backup is
+stale, so a leftover id can never brick a note.
+
+**The pattern, now four for four.** Every bug this session that reached the user was invisible to
+unit tests and obvious to an integration test: a URI string looks like any other string in
+`InMemoryFileSystem`. `platform/` and `ui/` code that touches real files or real VS Code state needs
+integration coverage, not just a fake.
+
+**Tests:** 95 unit, 29 integration.
 
 ### 2026-08-01 — M1 complete: CRUD, icons, search, recents, drag-and-drop
 **Commits:** `802912b`, `18ca869`, `94d1ecd`, `1b36dc7`, `f0952a8`, `c6473e4`, `7fe1fe0`

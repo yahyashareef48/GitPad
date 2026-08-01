@@ -133,6 +133,40 @@ describe('PadDocument', () => {
     assert.equal(events.length, 0);
   });
 
+  it('reloads a clean document when the file changes on disk', async () => {
+    // What a git pull looks like from an open editor's point of view.
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+
+    await fsp.writeFile(notePath, 'changed by someone else');
+
+    assert.equal(await document.reloadFromDisk(), 'reloaded');
+    assert.equal(document.text, 'changed by someone else');
+    assert.equal(document.isDirty, false);
+  });
+
+  it('reports a conflict rather than discarding unsaved work', async () => {
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+
+    document.edit('my unsaved work');
+    await fsp.writeFile(notePath, 'their version');
+
+    assert.equal(await document.reloadFromDisk(), 'conflict');
+    // Untouched: losing unsaved work to a background sync is unforgivable.
+    assert.equal(document.text, 'my unsaved work');
+  });
+
+  it('treats our own save as unchanged, not as an external edit', async () => {
+    // Saving fires the same watcher; content comparison is how we tell them
+    // apart, rather than timestamp guesswork.
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+
+    document.edit('written by us');
+    await document.save(noCancel);
+
+    assert.equal(await document.reloadFromDisk(), 'unchanged');
+    assert.equal(document.text, 'written by us');
+  });
+
   it('reverts to what is on disk', async () => {
     const document = await PadDocument.create(noteUri, undefined, fs, silent);
 

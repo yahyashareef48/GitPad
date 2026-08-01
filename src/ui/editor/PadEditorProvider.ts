@@ -26,6 +26,9 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
   /** Webviews currently showing each document, keyed by document URI. */
   private readonly panels = new Map<string, Set<vscode.WebviewPanel>>();
 
+  /** One filesystem watcher per open document, disposed with it. */
+  private readonly watchers = new Map<string, vscode.FileSystemWatcher>();
+
   private readonly documentChanged = new vscode.EventEmitter<
     vscode.CustomDocumentEditEvent<PadDocument>
   >();
@@ -56,7 +59,68 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       this.broadcast(document, { type: 'setText', text });
     });
 
+    this.watch(document);
+
     return document;
+  }
+
+  /**
+   * Keeps an open note in step with the file on disk.
+   *
+   * Matters most once sync exists: git pulling another device's edits changes
+   * the file underneath an open editor, and without this the user would keep
+   * editing a stale copy and overwrite the incoming change on next save.
+   */
+  private watch(document: PadDocument): void {
+    const watcher = vscode.workspace.createFileSystemWatcher(document.uri.fsPath);
+
+    const onChanged = () => {
+      void this.reload(document);
+    };
+
+    watcher.onDidChange(onChanged);
+    // Some tools replace a file rather than writing in place, which arrives as
+    // delete-then-create rather than a change.
+    watcher.onDidCreate(onChanged);
+
+    this.watchers.set(document.uri.toString(), watcher);
+  }
+
+  private async reload(document: PadDocument): Promise<void> {
+    const outcome = await document.reloadFromDisk();
+
+    if (outcome === 'reloaded') {
+      this.logger.info(`Reloaded ${document.uri.fsPath} after an external change`);
+      return;
+    }
+
+    if (outcome !== 'conflict') {
+      return;
+    }
+
+    /*
+     * The file changed while the user has unsaved edits.
+     *
+     * Never resolved automatically. Auto-save makes this rare, and when it
+     * does happen both versions are someone's work -- picking one silently is
+     * exactly the behaviour the merge invariant forbids elsewhere.
+     */
+    const keepMine = 'Keep my version';
+    const useTheirs = 'Use the version on disk';
+
+    const choice = await vscode.window.showWarningMessage(
+      `“${document.uri.path.split('/').pop() ?? ''}” changed on disk while you were editing it.`,
+      { modal: true, detail: 'Your unsaved changes and the file on disk have both moved on.' },
+      keepMine,
+      useTheirs,
+    );
+
+    if (choice === useTheirs) {
+      await document.acceptDiskVersion();
+    }
+
+    // Keeping the local version needs no action: the document is still dirty,
+    // and the next save writes over what is on disk.
   }
 
   public async resolveCustomEditor(
@@ -146,6 +210,12 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
 
   public dispose(): void {
     this.documentChanged.dispose();
+
+    for (const watcher of this.watchers.values()) {
+      watcher.dispose();
+    }
+
+    this.watchers.clear();
   }
 
   private track(document: PadDocument, panel: vscode.WebviewPanel): void {
@@ -160,6 +230,10 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
 
       if (existing.size === 0) {
         this.panels.delete(key);
+
+        // Last view of this note closed, so stop watching its file.
+        this.watchers.get(key)?.dispose();
+        this.watchers.delete(key);
       }
     });
   }

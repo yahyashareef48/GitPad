@@ -180,6 +180,39 @@ export class PadDocument implements vscode.CustomDocument {
     await this.fs.writeFile(target.fsPath, new TextEncoder().encode(snapshot));
   }
 
+  /**
+   * Reloads from disk after the file changed underneath us.
+   *
+   * Returns what happened, so the caller can decide whether to tell the user.
+   * A dirty document is never overwritten silently -- that is someone's
+   * unsaved work, and losing it to a background sync would be unforgivable.
+   */
+  public async reloadFromDisk(): Promise<'unchanged' | 'reloaded' | 'conflict'> {
+    const onDisk = await readText(this.fs, this.uri.fsPath).catch(() => undefined);
+
+    if (onDisk === undefined || onDisk === this.currentText) {
+      // Also the self-write case: our own save fires the watcher, and the
+      // content matching is exactly how we recognise it.
+      this.savedText = onDisk ?? this.savedText;
+
+      return 'unchanged';
+    }
+
+    if (this.isDirty) {
+      return 'conflict';
+    }
+
+    this.savedText = onDisk;
+    this.replace(onDisk);
+
+    return 'reloaded';
+  }
+
+  /** Accepts the version on disk, discarding local changes. */
+  public async acceptDiskVersion(): Promise<void> {
+    await this.revert();
+  }
+
   public async revert(): Promise<void> {
     const onDisk = await readText(this.fs, this.uri.fsPath);
 
