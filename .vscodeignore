@@ -1,8 +1,15 @@
+# Source is not shipped — dist/ is the built artifact (see esbuild.mjs).
 .vscode/**
 .vscode-test/**
 src/**
+webview/**
+test/**
+docs/**
+node_modules/**
 .gitignore
+esbuild.mjs
 tsconfig.json
+CLAUDE.md
 **/*.map
 **/.eslintrc.json
-node_modules/**
+*.vsix

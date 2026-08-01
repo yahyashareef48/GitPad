@@ -2,9 +2,10 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			// esbuild, not tsc — so the $tsc problem matcher no longer applies.
 			"type": "npm",
 			"script": "compile",
-			"problemMatcher": ["$tsc"],
+			"problemMatcher": [],
 			"presentation": {
 				"reveal": "silent"
 			},
@@ -12,6 +13,13 @@
 				"kind": "build",
 				"isDefault": true
 			}
+		},
+		{
+			// esbuild does not typecheck; this is the separate gate that does.
+			"type": "npm",
+			"script": "typecheck",
+			"problemMatcher": ["$tsc"],
+			"group": "build"
 		}
 	]
 }

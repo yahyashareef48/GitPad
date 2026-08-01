@@ -28,18 +28,21 @@
   "homepage": "https://github.com/yahyashareef48/GitPad#readme",
   "icon": "icon.png",
   "activationEvents": [],
-  "main": "./out/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {},
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.mjs --production",
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p ./ && tsc -p ./webview",
     "package": "vsce package"
   },
   "devDependencies": {
     "@types/node": "^20.x",
     "@types/vscode": "^1.90.0",
-    "typescript": "^5.x",
-    "@vscode/vsce": "^3.x"
+    "@vscode/vsce": "^3.x",
+    "esbuild": "^0.28.1",
+    "typescript": "^5.x"
   }
 }
