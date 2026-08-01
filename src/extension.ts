@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { OutputChannelLogger } from './platform/OutputChannelLogger';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
 
 /*
@@ -12,12 +13,17 @@ import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
  * not imported at all while sync is off.
  */
 export function activate(context: vscode.ExtensionContext): void {
+  const logger = new OutputChannelLogger();
+  context.subscriptions.push(logger);
+
   context.subscriptions.push(
     vscode.window.registerWebviewViewProvider(
       SidebarViewProvider.viewType,
       new SidebarViewProvider(context.extensionUri),
     ),
   );
+
+  logger.info('GitPad activated.');
 }
 
 export function deactivate(): void {
