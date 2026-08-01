@@ -19,7 +19,7 @@ we did, and where the two diverged.
 | Milestone | Scope | Status |
 |---|---|---|
 | **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | **Done** |
-| **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | In progress |
+| **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | **Done** |
 | **M2** | Custom editor with plain-text editing — proves the editor plumbing | Not started |
 | **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus, wikilinks | Not started |
 | **M4** | Trash, search + link index + backlinks, `.md` import/export, settings page → **Phase 1 ships** | Not started |
@@ -44,7 +44,7 @@ as they're answered.
 | 1 | Does the Ctrl+Z bridge (VS Code → RPC → ProseMirror history) feel correct — right granularity, focus reaches us, no drift between VS Code's edit count and ProseMirror's? | M2 | Open |
 | 2 | Which Crepe blocks survive a markdown round trip, and which get disabled? | M3 | Open |
 | 3 | How much work is restyling Crepe onto VS Code theme variables, really? | M3 | Open |
-| 4 | Does `react-arborist` + hand-built context menus reach parity with a native tree? | M1 | Open |
+| 4 | Does `react-arborist` + hand-built context menus reach parity with a native tree? | M1 | **Answered: yes, at a cost.** Virtualisation, keyboard nav and drag-and-drop came free. Context menus, the search box, icons and empty states were all hand-built. Roughly a day of work that a native `TreeView` would have given away — bought the search box, which a native tree cannot host at all. |
 | 5 | Does the `.vsix` stay lean once React + `react-arborist` + Crepe land, and does activation stay under 100 ms? | M3 | Open — 320 kB after `react-arborist` |
 
 ## Deferred, deliberately
@@ -56,6 +56,37 @@ as they're answered.
 ---
 
 ## Log
+
+### 2026-08-01 — M1 complete: CRUD, icons, search, recents, drag-and-drop
+**Commits:** `802912b`, `18ca869`, `94d1ecd`, `1b36dc7`, `f0952a8`, `c6473e4`, `7fe1fe0`
+**Milestone:** M1 → **Done**
+
+- **Note CRUD** — create, rename, duplicate, move to trash, with `created`/`updated` frontmatter.
+  Delete has no confirmation: it is reversible, and the notification carries the undo.
+- **Codicons** — VS Code's own icon font replaced hand-picked Unicode glyphs. First dependency
+  requiring attribution (CC BY 4.0); credited in the README and logged against §5.1.
+- **Search box** — local title filtering, the feature that justified the webview sidebar.
+- **Recently opened** — `globalState`, device-local, never synced.
+- **Drag-and-drop** — reorder within a folder and move between folders, persisted to
+  `.gitpad-order`.
+- **Settings button** — VS Code's settings filtered to the extension, standing in until M4.
+
+**Two bugs worth remembering**, both the same shape as earlier ones:
+
+1. *Asked for the vault on every reload.* `VaultController.state` returned `no-vault` while restore
+   was still running, conflating "no vault" with "not checked yet" — the identical mistake to the
+   webview's `undefined` vs `no-vault`, made one layer down. Fixed with an explicit `loading` state.
+2. *`filterTree` in `core/`* pulled `node:path` into the webview bundle and broke its typecheck. The
+   two tsconfigs caught exactly the environment mixing they exist to prevent; the file belongs in
+   `shared/`.
+
+**Deviations:**
+1. `.pad` files still open in VS Code's plain text editor — the custom editor is M2. Useful in the
+   meantime: it demonstrates notes are ordinary markdown.
+2. Tree ordering falls back to alphabetical rather than `created`, because reading frontmatter for
+   every note on every scan is work the search index should do once. Revisit at M4.
+
+**Tests:** 87 unit, 18 integration.
 
 ### 2026-08-01 — M1: vault setup, tree, and a rendering bug worth remembering
 **Commits:** `bd02f28`, `ce02c90`, `8f6a382`, `5614b30`, `f39d88c`, `2df3185`, `73a02eb`
