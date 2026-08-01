@@ -53,8 +53,23 @@ const webviewConfig = {
   splitting: true,
 };
 
+/*
+ * Integration tests run inside a real VS Code, so they must be bundled the same
+ * way the extension is -- CJS, Node, `vscode` external. Unit tests do not appear
+ * here: vitest runs them straight from TypeScript.
+ */
+const integrationTestConfig = {
+  ...shared,
+  entryPoints: ['test/integration/extension.test.ts'],
+  outdir: 'dist/test',
+  platform: 'node',
+  format: 'cjs',
+  external: ['vscode'],
+  target: 'node18',
+};
+
 async function run() {
-  const configs = [extensionConfig, webviewConfig];
+  const configs = [extensionConfig, webviewConfig, integrationTestConfig];
 
   if (watch) {
     const contexts = await Promise.all(configs.map((c) => esbuild.context(c)));

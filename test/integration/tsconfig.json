@@ -1,0 +1,9 @@
+{
+  // Separate from the root config so mocha's globals (describe/it) are visible
+  // here and nowhere else -- extension source has no business referencing them.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "types": ["node", "mocha"]
+  },
+  "include": ["."]
+}
