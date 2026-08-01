@@ -18,7 +18,7 @@ we did, and where the two diverged.
 
 | Milestone | Scope | Status |
 |---|---|---|
-| **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | Not started |
+| **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | In progress |
 | **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | Not started |
 | **M2** | Custom editor with plain-text editing — proves the editor plumbing | Not started |
 | **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus, wikilinks | Not started |
@@ -49,6 +49,31 @@ as they're answered.
 ---
 
 ## Log
+
+### 2026-08-01 — M0: build pipeline + sidebar vertical slice
+**Commits:** `4b7f69f`, `3d59f71`
+**Milestone:** M0 (in progress)
+**Branch:** `feat/m0-build-pipeline`
+
+Replaced the `tsc`-only build with esbuild across two targets, then proved it end to end with the
+thinnest possible sidebar.
+
+- `esbuild.mjs` — extension (CJS/node, `vscode` external) and webview (ESM/browser, code-split).
+- Two tsconfigs enforcing the environment split: `types: ["node"]` on one side, `types: []` + DOM
+  on the other, meeting only at `src/shared/`. Environment mistakes are now build errors.
+- `npm run typecheck` is a separate gate, since esbuild doesn't typecheck.
+- Output `out/` → `dist/`; launch.json, tasks.json, `.vscodeignore`, `.gitignore` updated.
+- Activity bar container + `gitpad.sidebar` webview view; CSP'd HTML shell with per-load nonce;
+  typed `ready` → `init` round trip between host and webview.
+- `media/activity-bar.svg` split from `icon.png` — VS Code themes activity bar icons itself, so
+  that mark carries no colour of its own.
+
+**Verified:** `npm run compile`, `npm run typecheck`, and `vsce package` all pass. Found and fixed
+`vsce` shipping the stale `out/` directory.
+
+**Not verified:** the sidebar actually rendering. That needs F5 and a human looking at it.
+
+**Deviation:** none.
 
 ### 2026-08-01 — Implementation plan complete
 **Commits:** `ae4226d`
