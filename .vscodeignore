@@ -1,4 +1,5 @@
 # Source is not shipped — dist/ is the built artifact (see esbuild.mjs).
+out/**
 .vscode/**
 .vscode-test/**
 src/**

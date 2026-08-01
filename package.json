@@ -27,9 +27,30 @@
   },
   "homepage": "https://github.com/yahyashareef48/GitPad#readme",
   "icon": "icon.png",
-  "activationEvents": [],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
   "main": "./dist/extension.js",
-  "contributes": {},
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gitpad",
+          "title": "GitPad",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "gitpad": [
+        {
+          "id": "gitpad.sidebar",
+          "name": "Notes",
+          "type": "webview"
+        }
+      ]
+    }
+  },
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "node esbuild.mjs --production",
