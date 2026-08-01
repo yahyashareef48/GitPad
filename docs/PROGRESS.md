@@ -21,7 +21,7 @@ we did, and where the two diverged.
 | **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | **Done** |
 | **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | **Done** |
 | **M2** | Custom editor with plain-text editing — proves the editor plumbing | **Done** |
-| **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus, wikilinks | Not started |
+| **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus | **Done** — wikilinks moved to M4 |
 | **M4** | Trash, search + link index + backlinks, `.md` import/export, settings page → **Phase 1 ships** | Not started |
 | **M5** | Auth, repo create/clone wizard, GitService, manual "Sync now" | Not started |
 | **M6** | Scheduler, status bar, sync footer, offline/backoff | Not started |
@@ -42,10 +42,10 @@ as they're answered.
 | # | Question | Resolves at | Outcome |
 |---|---|---|---|
 | 1 | Does the Ctrl+Z bridge (VS Code → RPC → ProseMirror history) feel correct? | M2 | **Answered: yes.** `CustomDocumentEditEvent` with both sides of each change captured works cleanly, confirmed by hand. Two details made it feel right rather than merely function: debouncing edits at 400 ms so one Ctrl+Z removes a burst of typing rather than a character, and restoring the caret after remote text is applied — without it, undo threw the cursor to the end of the note on every step. Still to re-verify against ProseMirror's own history in M3. |
-| 2 | Which Crepe blocks survive a markdown round trip, and which get disabled? | M3 | Open |
-| 3 | How much work is restyling Crepe onto VS Code theme variables, really? | M3 | Open |
+| 2 | Which Crepe blocks survive a markdown round trip, and which get disabled? | M3 | **Answered: nothing is lost.** Headings, emphasis, links, images, ordered lists, quotes, fenced code and strikethrough survive byte-identical. Disabled: LaTeX (needs remark-math), AI (needs a service), TopBar (filename is the title), image upload (out of scope). Three cosmetic normalisations remain — see the log. |
+| 3 | How much work is restyling Crepe onto VS Code theme variables, really? | M3 | **Answered: much less than budgeted, then more than expected.** Crepe's themes are only `--crepe-*` custom properties over structural CSS, so the mapping itself was an hour. Getting it RIGHT took four rounds, because `--crepe-color-outline` names a border but colours icons too — one bad mapping made every toolbar, table and block-handle glyph invisible. |
 | 4 | Does `react-arborist` + hand-built context menus reach parity with a native tree? | M1 | **Answered: yes, at a cost.** Virtualisation, keyboard nav and drag-and-drop came free. Context menus, the search box, icons and empty states were all hand-built. Roughly a day of work that a native `TreeView` would have given away — bought the search box, which a native tree cannot host at all. |
-| 5 | Does the `.vsix` stay lean once React + `react-arborist` + Crepe land, and does activation stay under 100 ms? | M3 | Open — 320 kB after `react-arborist` |
+| 5 | Does the `.vsix` stay lean once React + `react-arborist` + Crepe land? | M3 | **Answered: yes, just.** 2.8 MB raw, **1.13 MB packaged**. Bulk is Vue (Crepe uses it internally) and `@codemirror/language-data`. Loaded on demand, so no activation cost. Trimmable if it matters. |
 
 ## Deferred, deliberately
 
@@ -56,6 +56,37 @@ as they're answered.
 ---
 
 ## Log
+
+### 2026-08-02 — M3 complete: the rich editor
+**Commits:** `bc687d4`, `4b76ef1`, `1e185be`, `ba00226`, `802cb1f`, `fda8f42`, `d7e3e8f`, `a841d6c`, `dfa8da9`, `22c8a5b`
+**Milestone:** M3 → **Done**
+
+- **Crepe** replaces the textarea: slash menu, block handles, drag-to-reorder, selection toolbar,
+  tables, checkboxes, code blocks with highlighting.
+- **Theming** maps Crepe's `--crepe-*` variables onto `--vscode-*`, so it follows the user's theme.
+- **Note header** — file icon, editable title (renames the file), created/updated timestamps.
+- **Product icon** for `.pad` in the sidebar, tab and breadcrumb.
+- **Round-trip corpus** driving real Milkdown in jsdom — the guard plan 2.4 asks for.
+- **Pinned serializer options**, so saving does not rewrite what the user wrote.
+
+**The bug worth remembering.** Frontmatter was being rendered as document content — `---` followed
+by text is a *setext heading*, so Crepe correctly rendered our metadata as a giant title. Auto-save
+then wrote that interpretation back, permanently destroying the frontmatter of every note opened
+before the fix. The editor now only ever sees body text.
+
+**Lesson repeated a third time:** four visual bugs came from guessing at Crepe's class names and
+CSS variables instead of reading its stylesheets. Reading them first fixed all of it in one change.
+When integrating a component library, read its CSS before overriding it.
+
+**Deviations:**
+1. `[[wikilinks]]` moved to M4, where the link index and backlinks live. Wikilinks without an index
+   are just text; the index without wikilinks has little to point at.
+2. Image sizing CSS was written and then **backed out** — overrides fighting Crepe's stylesheet are
+   maintenance debt. Images overflow until uploads are designed properly.
+3. Crepe serializes a resized image's aspect ratio into the **alt text** (`![1.50](url)`),
+   replacing the accessibility description with a number. Must be decided before image work resumes.
+
+**Tests:** 110 unit, 33 integration.
 
 ### 2026-08-01 — M2 complete: the custom editor
 **Commits:** `b02f440`, `f0a7707`, `093ffa1`
