@@ -159,16 +159,26 @@
  * editor's -- a large image simply overflows, pushing the URL row and the
  * Confirm button out of view.
  */
-.milkdown .milkdown-image-block > .image-wrapper {
-  max-width: 100%;
-}
-
-.milkdown .milkdown-image-block > .image-wrapper img {
+/*
+ * Applied to EVERY image in the editor, not just the confirmed one.
+ *
+ * The preview shown while a URL is still being entered lives in a different
+ * container from the placed image, so a rule targeting only `.image-wrapper`
+ * left the preview overflowing -- pushing the URL row and Confirm button out
+ * of view exactly when the user needs them.
+ */
+.milkdown img {
   max-width: 100%;
   height: auto;
   /* `contain` rather than Crepe's `cover`: cropping someone's screenshot to
      fit a box is worse than showing it smaller. */
   object-fit: contain;
+}
+
+.milkdown .milkdown-image-block,
+.milkdown .milkdown-image-block > .image-wrapper,
+.milkdown .milkdown-image-block > .image-edit {
+  max-width: 100%;
 }
 
 /* ---- Long words must wrap ---- */
