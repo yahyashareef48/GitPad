@@ -119,7 +119,7 @@ body {
   align-items: center;
   gap: 2px;
   padding: 4px 4px 4px 8px;
-  border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, transparent);
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
 }
 
 .vault-header__name {
@@ -214,6 +214,11 @@ body {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
+  /* Separates the section from the tree below it, which is otherwise a
+     continuous run of identical rows with no indication where one list ends
+     and the other begins. */
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
 }
 
 .section__header {

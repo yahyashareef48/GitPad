@@ -48,6 +48,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       this.vault.onDidChangeContents(() => {
         void this.refreshTree();
       }),
+      // Settings changes must take effect immediately. Requiring a reload to
+      // see the result of a checkbox reads as the setting not working.
+      vscode.workspace.onDidChangeConfiguration((event) => {
+        if (event.affectsConfiguration('gitpad.sidebar')) {
+          this.postRecent();
+        }
+      }),
     );
   }
 

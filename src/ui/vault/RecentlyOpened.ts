@@ -16,17 +16,31 @@ import type { RecentItemDto } from '../../shared/protocol';
 const STORAGE_KEY = 'gitpad.recentlyOpened';
 
 export class RecentlyOpened {
+  /**
+   * `limit` is a function, not a number.
+   *
+   * It is a user setting, so reading it once at construction means changing it
+   * does nothing until the window is reloaded -- including setting it to 0 to
+   * hide the section, which is exactly when someone expects an immediate
+   * result.
+   */
   public constructor(
     private readonly memento: vscode.Memento,
-    private readonly limit: number,
+    private readonly limit: () => number,
   ) {}
 
   public list(vaultRoot: string): readonly RecentItemDto[] {
+    const limit = Math.max(0, this.limit());
+
+    if (limit === 0) {
+      return [];
+    }
+
     return this.read()
       // Entries from other vaults are irrelevant here, and a vault the user
       // has moved on from should not haunt the list.
       .filter((id) => isInside(vaultRoot, id))
-      .slice(0, this.limit)
+      .slice(0, limit)
       .map((id) => ({ id, name: path.parse(id).name }));
   }
 

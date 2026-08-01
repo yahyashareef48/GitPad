@@ -38,10 +38,10 @@ export function activate(context: vscode.ExtensionContext): void {
   const tree = new VaultTree(fs, logger, new Set([NOTE_EXTENSION]));
   const notes = new NoteService(fs, clock, logger);
 
-  const recentLimit = vscode.workspace
-    .getConfiguration()
-    .get<number>('gitpad.sidebar.recentlyOpenedCount', 5);
-  const recent = new RecentlyOpened(context.globalState, recentLimit);
+  // Read on every use, not captured here -- see RecentlyOpened's constructor.
+  const recent = new RecentlyOpened(context.globalState, () =>
+    vscode.workspace.getConfiguration().get<number>('gitpad.sidebar.recentlyOpenedCount', 5),
+  );
 
   const order = new OrderService(fs, logger);
 
