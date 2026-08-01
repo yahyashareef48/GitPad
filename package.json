@@ -57,13 +57,17 @@
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p ./ && tsc -p ./webview",
+    "lint": "eslint .",
     "package": "vsce package"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^20.x",
     "@types/vscode": "^1.90.0",
     "@vscode/vsce": "^3.x",
     "esbuild": "^0.28.1",
-    "typescript": "^5.x"
+    "eslint": "^10.8.0",
+    "typescript": "^5.x",
+    "typescript-eslint": "^8.65.0"
   }
 }
