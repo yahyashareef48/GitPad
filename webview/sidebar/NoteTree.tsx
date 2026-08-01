@@ -2,6 +2,7 @@ import { Tree, type NodeRendererProps } from 'react-arborist';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { TreeNodeDto } from '../../src/shared/protocol';
+import { Icon } from './Icon';
 
 /*
  * The notes tree.
@@ -89,7 +90,14 @@ function Row({
         onContextMenu(node.data, event.clientX, event.clientY);
       }}
     >
-      <span className="row__twisty">{isFolder ? (node.isOpen ? '⌄' : '›') : ''}</span>
+      <span className="row__twisty">
+        {isFolder ? <Icon name={node.isOpen ? 'chevron-down' : 'chevron-right'} /> : null}
+      </span>
+
+      <span className="row__icon">
+        <Icon name={isFolder ? (node.isOpen ? 'folder-opened' : 'folder') : 'file'} />
+      </span>
+
       <span className="row__name">{node.data.name}</span>
     </div>
   );

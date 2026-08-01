@@ -5,6 +5,9 @@ import type { HostToSidebar, SidebarToHost } from '../../src/shared/protocol';
 import { createBridge } from '../shared/rpc';
 import { App } from './App';
 import { ErrorBoundary } from './ErrorBoundary';
+// VS Code's own icon font, so GitPad's glyphs are the same ones the rest of
+// the editor uses rather than lookalikes. CC-BY-4.0; attributed in the README.
+import '@vscode/codicons/dist/codicon.css';
 import './styles.css';
 
 /*

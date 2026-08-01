@@ -1,5 +1,7 @@
+import { Icon } from './Icon';
+
 /*
- * Shows which vault is open, and offers a way out of it.
+ * Shows which vault is open, and the actions that apply to it as a whole.
  *
  * Without this the vault is chosen once and then invisible: the welcome screen
  * disappears after setup, so there is no way to tell which folder GitPad is
@@ -11,9 +13,16 @@ interface VaultHeaderProps {
   readonly onChange: () => void;
   readonly onNewNote: () => void;
   readonly onNewFolder: () => void;
+  readonly onSettings: () => void;
 }
 
-export function VaultHeader({ root, onChange, onNewNote, onNewFolder }: VaultHeaderProps) {
+export function VaultHeader({
+  root,
+  onChange,
+  onNewNote,
+  onNewFolder,
+  onSettings,
+}: VaultHeaderProps) {
   return (
     <header className="vault-header">
       {/* The full path is the tooltip: a sidebar is narrow, and the folder
@@ -23,15 +32,24 @@ export function VaultHeader({ root, onChange, onNewNote, onNewFolder }: VaultHea
       </span>
 
       <button type="button" className="icon-button" title="New note" onClick={onNewNote}>
-        ＋
+        <Icon name="new-file" />
       </button>
 
       <button type="button" className="icon-button" title="New folder" onClick={onNewFolder}>
-        ⊞
+        <Icon name="new-folder" />
       </button>
 
-      <button type="button" className="icon-button" title="Open a different vault" onClick={onChange}>
-        ⋯
+      <button type="button" className="icon-button" title="Settings" onClick={onSettings}>
+        <Icon name="gear" />
+      </button>
+
+      <button
+        type="button"
+        className="icon-button"
+        title="Open a different vault"
+        onClick={onChange}
+      >
+        <Icon name="ellipsis" />
       </button>
     </header>
   );

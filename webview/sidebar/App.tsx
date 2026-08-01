@@ -125,6 +125,7 @@ export function App({ bridge }: AppProps) {
         onChange={() => setChoosing(true)}
         onNewNote={() => bridge.post({ type: 'createNote' })}
         onNewFolder={() => bridge.post({ type: 'createFolder' })}
+        onSettings={() => bridge.post({ type: 'openSettings' })}
       />
 
       <div className="shell__body">

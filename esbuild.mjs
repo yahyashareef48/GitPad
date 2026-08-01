@@ -52,6 +52,10 @@ const webviewConfig = {
   // React ships development-only warnings guarded by this; without it the
   // production bundle keeps the whole dev build.
   define: { 'process.env.NODE_ENV': production ? '"production"' : '"development"' },
+  // Codicons' stylesheet references its font file. Emitting it as a sibling
+  // asset (rather than inlining ~70 kB of base64 into the CSS) keeps the font
+  // cacheable and the stylesheet readable.
+  loader: { '.ttf': 'file' },
   // Shared code between surfaces becomes its own chunk instead of being
   // duplicated into each bundle. Matters once the editor and settings
   // surfaces land alongside the sidebar.

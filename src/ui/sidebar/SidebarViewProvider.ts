@@ -131,6 +131,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       case 'trashItem':
         await this.trash(message.id, message.name);
         break;
+
+      case 'openSettings':
+        // Stand-in until the dedicated settings page lands in M4. Filtering by
+        // extension id gives GitPad's settings and nothing else.
+        await vscode.commands.executeCommand(
+          'workbench.action.openSettings',
+          '@ext:YahyaShareef.gitpad',
+        );
+        break;
     }
   }
 

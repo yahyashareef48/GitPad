@@ -117,8 +117,8 @@ body {
 .vault-header {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 8px;
+  gap: 2px;
+  padding: 4px 4px 4px 8px;
   border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, transparent);
 }
 
@@ -131,14 +131,18 @@ body {
 }
 
 .icon-button {
-  padding: 2px 6px;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
   border: none;
-  border-radius: 2px;
-  color: var(--vscode-foreground);
+  border-radius: 4px;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
   background: transparent;
-  font-family: inherit;
-  font-size: 0.9em;
-  opacity: 0.7;
+  opacity: 0.85;
   cursor: pointer;
 }
 
@@ -240,10 +244,24 @@ body {
 }
 
 .row__twisty {
-  flex: 0 0 12px;
-  opacity: 0.7;
-  font-size: 0.85em;
-  text-align: center;
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+}
+
+.row__icon {
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+}
+
+/* Codicons default to 16px; the twisty reads better a shade smaller. */
+.row__twisty .codicon {
+  font-size: 14px;
 }
 
 .row__name {
