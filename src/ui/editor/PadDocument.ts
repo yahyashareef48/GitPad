@@ -1,5 +1,11 @@
 import * as vscode from 'vscode';
 
+import {
+  parseDocument,
+  serializeDocument,
+  writeField,
+} from '../../core/markdown/frontmatter';
+import type { Clock } from '../../core/ports/Clock';
 import type { FileSystem } from '../../core/ports/FileSystem';
 import type { Logger } from '../../core/ports/Logger';
 
@@ -34,6 +40,9 @@ export class PadDocument implements vscode.CustomDocument {
   /** Fires when content changes for any reason; the webview re-renders. */
   private readonly contentChanged = new vscode.EventEmitter<string>();
   public readonly onDidChangeContent = this.contentChanged.event;
+
+  /** Stamps `updated` on save. Optional so tests can omit it. */
+  public clock: Clock | undefined;
 
   /**
    * Fires to tell VS Code an undoable edit happened.
@@ -112,6 +121,31 @@ export class PadDocument implements vscode.CustomDocument {
     return this.currentText;
   }
 
+  /**
+   * The document without its frontmatter -- what the editor shows.
+   *
+   * Frontmatter must never reach the editor. `---` followed by text is a
+   * setext heading in markdown, so a metadata block renders as a giant title
+   * made of `created:` and `updated:`. Worse, once the editor owns it, a round
+   * trip through the editor's own serializer can reformat or lose keys that
+   * belong to the user or to another tool.
+   */
+  public get body(): string {
+    return parseDocument(this.currentText).body;
+  }
+
+  /**
+   * Records an edit to the body, preserving frontmatter exactly.
+   *
+   * The editor only ever sends body text, so the metadata is reattached here
+   * byte-for-byte rather than passing through anything that might rewrite it.
+   */
+  public editBody(body: string, label = 'Edit'): void {
+    const { frontmatter } = parseDocument(this.currentText);
+
+    this.edit(serializeDocument({ frontmatter, body }), label);
+  }
+
   public get isDirty(): boolean {
     return this.currentText !== this.savedText;
   }
@@ -161,6 +195,26 @@ export class PadDocument implements vscode.CustomDocument {
   }
 
   public async save(cancellation: vscode.CancellationToken): Promise<void> {
+    /*
+     * `updated` is stamped here rather than on every edit.
+     *
+     * Stamping per keystroke would rewrite frontmatter constantly and, once
+     * sync exists, put a metadata change in every commit. Save is the moment
+     * the file actually changes, so it is the honest moment to record.
+     */
+    if (this.clock !== undefined) {
+      const parsed = parseDocument(this.currentText);
+
+      // Only touched when there is already a frontmatter block; a note without
+      // one should not grow metadata just by being saved.
+      if (parsed.frontmatter.length > 0) {
+        this.currentText = serializeDocument({
+          ...parsed,
+          frontmatter: writeField(parsed.frontmatter, 'updated', this.clock.nowIso()),
+        });
+      }
+    }
+
     await this.saveAs(this.uri, cancellation);
     this.savedText = this.currentText;
   }

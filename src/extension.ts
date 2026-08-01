@@ -58,7 +58,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const autoSave = new AutoSave(logger);
-  const editor = new PadEditorProvider(context.extensionUri, fs, autoSave, logger);
+  const editor = new PadEditorProvider(context.extensionUri, fs, autoSave, clock, logger);
 
   context.subscriptions.push(
     logger,

@@ -25,6 +25,17 @@ interface EditorProps {
   readonly bridge: Bridge<EditorToHost, HostToEditor>;
 }
 
+/**
+ * Text size is a data attribute on the root, not React state.
+ *
+ * The CSS variable it selects cascades into Crepe's own DOM, which React does
+ * not own -- Crepe renders itself. An attribute reaches all of it; a prop
+ * would only reach the parts we render.
+ */
+function applyTextSize(size: string): void {
+  document.documentElement.dataset.gitpadSize = size;
+}
+
 export function Editor({ bridge }: EditorProps) {
   const [initial, setInitial] = useState<string | undefined>(undefined);
   const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -51,6 +62,11 @@ export function Editor({ bridge }: EditorProps) {
       switch (message.type) {
         case 'init':
           setInitial(message.text);
+          applyTextSize(message.textSize);
+          break;
+
+        case 'settings':
+          applyTextSize(message.textSize);
           break;
 
         case 'setText':

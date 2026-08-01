@@ -1,8 +1,9 @@
 import * as vscode from 'vscode';
 
+import type { Clock } from '../../core/ports/Clock';
 import type { FileSystem } from '../../core/ports/FileSystem';
 import type { Logger } from '../../core/ports/Logger';
-import type { EditorToHost, HostToEditor } from '../../shared/protocol';
+import type { EditorTextSize, EditorToHost, HostToEditor } from '../../shared/protocol';
 import { renderWebviewHtml } from '../webview/WebviewHost';
 import type { AutoSave } from './AutoSave';
 import { PadDocument } from './PadDocument';
@@ -14,11 +15,10 @@ import { PadDocument } from './PadDocument';
  * because `.pad` is ours: a default-priority editor for `.md` would hijack
  * every markdown file in every project the user opens (plan 1.4).
  *
- * The editor surface is a plain textarea for now, on purpose. M2 exists to
- * prove this API works -- document lifecycle, dirty state, save, and the undo
- * bridge -- before a rich editor is layered on in M3. If undo misbehaves with
- * a textarea, the fault is here; if it only misbehaves after Milkdown arrives,
- * the fault is there. One suspect at a time.
+ * The editing surface is Milkdown's Crepe. The webview is sent, and returns,
+ * BODY text only -- frontmatter is held here and reattached on the way out, so
+ * metadata can never be reformatted or lost by a round trip through the
+ * editor's serializer.
  */
 export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocument> {
   public static readonly viewType = 'gitpad.editor';
@@ -38,6 +38,7 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     private readonly extensionUri: vscode.Uri,
     private readonly fs: FileSystem,
     private readonly autoSave: AutoSave,
+    private readonly clock: Clock,
     private readonly logger: Logger,
   ) {}
 
@@ -47,6 +48,8 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
   ): Promise<PadDocument> {
     const document = await PadDocument.create(uri, context.backupId, this.fs, this.logger);
 
+    document.clock = this.clock;
+
     // Forwarded rather than exposed directly: VS Code subscribes to the
     // provider, not to individual documents.
     document.onDidChangeDocument((event) => {
@@ -55,8 +58,9 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
 
     // Content can change without the webview knowing -- undo, redo, revert,
     // or the file changing on disk. Every panel showing it needs telling.
-    document.onDidChangeContent((text) => {
-      this.broadcast(document, { type: 'setText', text });
+    document.onDidChangeContent(() => {
+      // Body only: frontmatter never reaches the editor (see PadDocument.body).
+      this.broadcast(document, { type: 'setText', text: document.body });
     });
 
     this.watch(document);
@@ -148,13 +152,14 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
           // still-loading webview are dropped silently.
           void panel.webview.postMessage({
             type: 'init',
-            text: document.text,
+            text: document.body,
             editable: true,
+            textSize: readTextSize(),
           } satisfies HostToEditor);
           break;
 
         case 'edit':
-          document.edit(message.text);
+          document.editBody(message.text);
           this.autoSave.schedule(document.uri);
           break;
       }
@@ -174,6 +179,21 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
 
     panel.onDidDispose(() => {
       void this.autoSave.flush(document.uri);
+    });
+
+    // Settings must take effect immediately; requiring a reload to see the
+    // result of changing one reads as the setting not working.
+    const settingsListener = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('gitpad.editor.textSize')) {
+        void panel.webview.postMessage({
+          type: 'settings',
+          textSize: readTextSize(),
+        } satisfies HostToEditor);
+      }
+    });
+
+    panel.onDidDispose(() => {
+      settingsListener.dispose();
     });
   }
 
@@ -256,4 +276,10 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       void panel.webview.postMessage(message);
     }
   }
+}
+
+function readTextSize(): EditorTextSize {
+  return vscode.workspace
+    .getConfiguration()
+    .get<EditorTextSize>('gitpad.editor.textSize', 'medium');
 }

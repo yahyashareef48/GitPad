@@ -19,11 +19,20 @@
   /* Surfaces */
   --crepe-color-background: var(--vscode-editor-background);
   --crepe-color-on-background: var(--vscode-editor-foreground);
-  --crepe-color-surface: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-  --crepe-color-surface-low: var(--vscode-editorWidget-background, var(--vscode-editor-background));
-  --crepe-color-on-surface: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground));
-  --crepe-color-on-surface-variant: var(--vscode-descriptionForeground);
-  --crepe-color-outline: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+  /* Menus and popovers use VS Code's menu colours so they read as editor
+     chrome rather than as page content. */
+  --crepe-color-surface: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  --crepe-color-surface-low: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  /*
+   * Crepe uses on-surface and on-surface-variant for menu text, block handles
+   * and toolbar icons. Mapping the "variant" to descriptionForeground made all
+   * of those barely legible, because VS Code intends that colour for secondary
+   * captions, not for controls a user has to aim at. Both now use full
+   * foreground, and dimming is left to opacity where it is actually wanted.
+   */
+  --crepe-color-on-surface: var(--vscode-menu-foreground, var(--vscode-foreground));
+  --crepe-color-on-surface-variant: var(--vscode-foreground);
+  --crepe-color-outline: var(--vscode-menu-border, var(--vscode-widget-border));
 
   /* Accents. Crepe uses "primary" for carets, active handles and emphasis. */
   --crepe-color-primary: var(--vscode-textLink-foreground);
@@ -60,19 +69,86 @@
 }
 
 .milkdown .ProseMirror {
-  /* Generous side padding: prose is uncomfortable flush against a window
-     edge, unlike code, which has a gutter doing the same job. */
+  /*
+   * Generous side padding: prose is uncomfortable flush against a window
+   * edge, unlike code, which has a gutter doing the same job.
+   *
+   * The large bottom padding is deliberate -- it lets the last line of a long
+   * note sit mid-screen rather than against the bottom edge. Notion, Obsidian
+   * and Word all do the same.
+   */
   padding: 24px 32px 40vh;
-  font-size: var(--vscode-font-size);
+  font-size: var(--gitpad-text-size);
   line-height: 1.7;
   outline: none;
 }
 
+/* ---- Text size ---- */
+
 /*
- * Trailing space below the last line, so writing at the end of a long note
- * does not happen at the very bottom edge of the window. Notion, Obsidian and
- * Word all do this for the same reason.
+ * Crepe's own sizes are tuned for a full-width web page and read as oversized
+ * inside an editor tab, especially headings. These are scaled to sit closer to
+ * VS Code's own UI, and the base is user-adjustable via gitpad.editor.textSize.
  */
+:root {
+  --gitpad-text-size: var(--vscode-font-size);
+}
+
+:root[data-gitpad-size='small'] {
+  --gitpad-text-size: calc(var(--vscode-font-size) * 0.95);
+}
+
+:root[data-gitpad-size='large'] {
+  --gitpad-text-size: calc(var(--vscode-font-size) * 1.2);
+}
+
+.milkdown .ProseMirror h1 {
+  font-size: 1.8em;
+}
+
+.milkdown .ProseMirror h2 {
+  font-size: 1.5em;
+}
+
+.milkdown .ProseMirror h3 {
+  font-size: 1.25em;
+}
+
+.milkdown .ProseMirror h4 {
+  font-size: 1.1em;
+}
+
+.milkdown .ProseMirror h5,
+.milkdown .ProseMirror h6 {
+  font-size: 1em;
+}
+
+/* ---- Uploads are out of scope (plan 2.5) ---- */
+
+/*
+ * Hidden rather than left to fail. Crepe's image block offers "Upload file or
+ * paste link"; the upload handlers reject, so leaving the control visible
+ * advertises a feature that only produces an error. Link entry remains.
+ */
+.milkdown .milkdown-image-block .image-uploader,
+.milkdown .milkdown-image-block .uploader,
+.milkdown milkdown-image-block .image-uploader,
+.milkdown .milkdown-image-inline .uploader {
+  display: none !important;
+}
+
+/* ---- Popovers must not be clipped ---- */
+
+/*
+ * The slash menu and toolbar are positioned relative to the viewport, so a
+ * menu opened near the top or bottom of a short editor pane gets cut off.
+ * Capping the height and letting it scroll keeps every item reachable.
+ */
+.milkdown .milkdown-slash-menu,
+.milkdown milkdown-slash-menu {
+  max-height: min(60vh, 320px);
+  overflow-y: auto;
+}
 
 /* ---- Reconciling with VS Code chrome ---- */
 

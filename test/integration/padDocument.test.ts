@@ -167,6 +167,56 @@ describe('PadDocument', () => {
     assert.equal(document.text, 'written by us');
   });
 
+  it('keeps frontmatter out of the editor body', async () => {
+    // Frontmatter reaching the editor is not cosmetic: `---` followed by text
+    // is a setext heading, so the metadata renders as a giant document title.
+    await fsp.writeFile(notePath, '---\ncreated: 2026-01-01\n---\nActual content\n');
+
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+
+    assert.equal(document.body, 'Actual content\n');
+  });
+
+  it('reattaches frontmatter byte-for-byte when the body is edited', async () => {
+    // Including keys GitPad does not understand: a note from Obsidian must not
+    // lose its tags by being opened here.
+    await fsp.writeFile(notePath, '---\ntags: [a, b]\ncreated: 2026-01-01\n---\nold body\n');
+
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+    document.editBody('new body\n');
+
+    assert.equal(document.text, '---\ntags: [a, b]\ncreated: 2026-01-01\n---\nnew body\n');
+  });
+
+  it('stamps updated on save without disturbing other keys', async () => {
+    await fsp.writeFile(notePath, '---\ntags: keep\nupdated: old\n---\nbody\n');
+
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+    document.clock = { now: () => 0, nowIso: () => '2026-08-01T00:00:00.000Z' };
+
+    document.editBody('changed\n');
+    await document.save(noCancel);
+
+    const written = await fsp.readFile(notePath, 'utf8');
+
+    assert.match(written, /tags: keep/);
+    assert.match(written, /updated: 2026-08-01T00:00:00\.000Z/);
+    assert.doesNotMatch(written, /updated: old/);
+  });
+
+  it('does not add frontmatter to a note that has none', async () => {
+    // Saving a plain note should not grow metadata it never had.
+    await fsp.writeFile(notePath, 'just text\n');
+
+    const document = await PadDocument.create(noteUri, undefined, fs, silent);
+    document.clock = { now: () => 0, nowIso: () => '2026-08-01T00:00:00.000Z' };
+
+    document.editBody('still just text\n');
+    await document.save(noCancel);
+
+    assert.equal(await fsp.readFile(notePath, 'utf8'), 'still just text\n');
+  });
+
   it('reverts to what is on disk', async () => {
     const document = await PadDocument.create(noteUri, undefined, fs, silent);
 

@@ -122,6 +122,8 @@ export interface RecentItemDto {
  * about the sidebar and vice versa; they share only this module.
  * ------------------------------------------------------------------------ */
 
+export type EditorTextSize = 'small' | 'medium' | 'large';
+
 /** Messages the editor webview sends to the extension host. */
 export type EditorToHost =
   /** The webview has executed and can render. Nothing is posted before this. */
@@ -138,7 +140,14 @@ export type EditorToHost =
 
 /** Messages the extension host sends to the editor webview. */
 export type HostToEditor =
-  | { readonly type: 'init'; readonly text: string; readonly editable: boolean }
+  | {
+      readonly type: 'init';
+      readonly text: string;
+      readonly editable: boolean;
+      readonly textSize: EditorTextSize;
+    }
+  /** Sent when settings change, so the editor updates without a reload. */
+  | { readonly type: 'settings'; readonly textSize: EditorTextSize }
   /**
    * Replace the editor's content wholesale.
    *
