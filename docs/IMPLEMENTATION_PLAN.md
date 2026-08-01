@@ -204,6 +204,65 @@ Note: `@vscode/webview-ui-toolkit` is deprecated — do **not** adopt it. Style 
 custom properties (`--vscode-editor-background`, etc.) so light, dark, and high-contrast theming
 is automatic.
 
+### 1.8 Repository layout
+
+Structure exists to keep the **blast radius of a future change small**. Each concern lives in one
+place, and the boundaries between them are enforced rather than agreed.
+
+```
+src/
+├─ extension.ts              activation only: wire things together, nothing else
+│
+├─ core/                     ← domain. NEVER imports vscode.
+│  ├─ registry/              DocumentType.ts, DocumentTypeRegistry.ts
+│  ├─ vault/                 VaultService, VaultLayout, TrashService
+│  ├─ naming/                title ↔ filename: sanitize, uniquify, debounce rules (§2.6)
+│  ├─ ordering/              .gitpad-order read/write/merge (§2.7)
+│  ├─ index/                 LinkIndex, SearchIndex
+│  └─ ports/                 FileSystem, Clock, Logger — interfaces the domain needs
+│
+├─ types/                    ← one folder per document type, self-contained
+│  └─ note/                  NoteType.ts + markdown/{parse,serialize,frontmatter}.ts
+│
+├─ platform/                 ← vscode adapters implementing core/ports
+│
+├─ ui/                       ← extension-host side
+│  ├─ sidebar/  editor/  settings/  commands/
+│  └─ webview/               html, CSP, nonce, URI rewriting
+│
+├─ sync/                     ← Phase 2. Absent in Phase 1, so nothing can leak in.
+│
+└─ shared/protocol.ts        ← the ONLY file both extension and webview import
+
+webview/                     ← browser context, own tsconfig
+├─ sidebar/  editor/  settings/
+└─ shared/rpc.ts
+
+test/
+├─ unit/                     vitest — core/ and types/ only, no extension host
+├─ integration/              @vscode/test-cli
+└─ fixtures/roundtrip/
+```
+
+Three properties this is built for:
+
+- **`core/` cannot import `vscode` — enforced by an ESLint boundary rule, not by convention.**
+  A rule people have to remember is a rule that gets broken in month three; a rule that fails the
+  build doesn't. It's also what keeps merge logic and the markdown pipeline testable in plain
+  vitest without an extension host (§1.1).
+- **`types/<name>/` is self-contained.** Adding the board in Phase 3 is a new sibling folder — no
+  edits to tree, sync, search, or conflict code. The registry (§1.2) doing its job.
+- **`sync/` does not exist in Phase 1.** Not stubbed, not empty — absent. Nothing can accidentally
+  depend on it before it's designed.
+
+#### Code style
+- **Small, separated units.** One concern per file. A change should touch one folder, not five.
+- **Inline comments that explain *why*, not *what*.** The plan holds the long reasoning; comments
+  hold the short version at the point it matters — the non-obvious constraint, the reason a naive
+  version would be wrong. Don't narrate what the line plainly does.
+- **Clean and simple over clever.** Predictable beats condensed; this codebase will be read far more
+  than it's written.
+
 ---
 
 ## 2. Phase 1 — Vault, tree, and the live note editor
@@ -228,6 +287,44 @@ First run shows a welcome view in the sidebar with three paths:
 Stored as `gitpad.vault.path`. The folder picker must **not** default to the currently-open
 workspace — a personal note landing inside a client's repo, then getting auto-committed there
 every five seconds in Phase 2, is the worst failure mode this product has.
+
+#### Guarding against adopting someone else's repo
+
+Three cases, and they are not equivalent:
+
+| The chosen folder is… | Handling |
+|---|---|
+| A plain folder, no git anywhere above it | Fine. `git init` happens later, if sync is enabled. |
+| Already a GitPad vault (`.gitpad/config.json` at the repo root) | Fine — this is the second-device path. Adopt it. |
+| **A git repo that is something else** (a code project) | **Warn hard.** See below. |
+
+**The check must walk up ancestors, not just test the chosen folder.** Picking
+`~/projects/myapp/notes` — no `.git` of its own, but sitting inside one — is the common and sneaky
+version of this mistake.
+
+**Why the third case is dangerous.** Pointed at a code project, GitPad would auto-commit the user's
+uncommitted source every five seconds onto whatever branch is checked out; force-push during history
+compaction (§3.8), destroying their project history; stamp the co-author trailer (§3.7) on their
+real commits; fight them over private-repo enforcement (§3.1); and scatter conflict copies (§3.6)
+through their source tree. Meanwhile the sidebar shows **nothing**, because everything that isn't a
+document type is filtered out (§2.2) — so it looks broken while quietly consuming their repo.
+
+**Warn, don't block.** Someone may genuinely want notes inside a repo with sync off; refusing
+outright means guessing at their situation. Explain what would happen in plain language, then offer
+three options with the safe one preselected:
+
+1. **Choose a different folder** (recommended)
+2. **Use it with sync off** — GitPad manages notes as files; their git is never touched
+3. **Use it with sync on** — typed confirmation, not a single click
+
+**The invariant that makes the bad path unreachable by accident:**
+
+> Sync auto-enables only for a repo **GitPad created**, or one whose root contains
+> `.gitpad/config.json`. Adopting any other repo for sync requires explicit consent, recorded as
+> `adoptedForeignRepo: true` in the vault config.
+
+**Re-check at sync-enable time, not only at vault-pick time.** A vault created today with sync off
+may have sync turned on months later, long after the user has forgotten what folder they chose.
 
 Scaffold `.gitpad/config.json` with `{ schemaVersion: 1 }` — versioned from day one so future
 migrations aren't archaeology. `VaultService` takes a vault root as a parameter rather than reading
@@ -541,7 +638,9 @@ Setup offers:
    current vault contents.
 2. **Connect to an existing repo** — clone into an empty folder, or merge into a non-empty vault
    after an explicit warning.
-3. **Adopt an existing local git repo** — vault already has `.git`; just use it.
+3. **Adopt an existing local git repo** — vault already has `.git`. Permitted only for a repo
+   GitPad created or one marked as a vault; anything else requires the explicit consent flow in
+   §2.1, re-verified here rather than trusted from setup time.
 
 Privacy is enforced, not requested: repo creation always sets `private: true`, and every sync
 verifies the remote is still private. If it flipped to public, sync **pauses** and warns.
@@ -871,7 +970,7 @@ ring, or font is immediately visible by comparison.
 | **Markdown round-trip loss** — the one that could kill the product | Milkdown/remark shared pipeline + golden corpus from commit one |
 | Custom editor undo bridge feels wrong | Prototype at step 3 of §2.4, before building on top of it |
 | Merge engine silently loses content | "Never discard, always duplicate" invariant + sync simulator |
-| Notes land in the user's code repo | Vault picker never defaults to the open workspace |
+| Notes land in the user's code repo | Vault picker never defaults to the open workspace; ancestor-walking git detection at pick time **and** at sync-enable time; sync auto-enables only for GitPad-created or GitPad-marked repos (§2.1) |
 | Milkdown is a smaller project (bus factor) | Sits on ProseMirror (stable, decade-old); `DocumentType` keeps the editor swappable; Lexical and CodeMirror 6 are the identified fallbacks |
 | A Crepe block has no markdown form and silently drops on save | The §2.4 hard rule + the block audit at M3 step 4; fixtures for every block we keep |
 | Crepe's opinionated CSS looks alien inside VS Code | §5.5 restyling is a scheduled task at M3 step 5, not an afterthought |

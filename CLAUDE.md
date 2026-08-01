@@ -25,6 +25,21 @@ npm run package     # vsce package
 
 Press `F5` to launch the Extension Development Host.
 
+## How to write code here
+
+**Follow the repository layout in §1.8 of the plan.** It isn't decoration — each concern lives in
+one place so that a future change touches one folder instead of five.
+
+- **Keep the blast radius small.** One concern per file, clear seams between parts. Before adding
+  code, ask which single folder should own it. If the answer is "several," the design is wrong.
+- **Clean and simple over clever.** Predictable beats condensed. This codebase will be read far more
+  often than it is written.
+- **Inline comments explaining *why*, not *what*.** The plan holds the long reasoning; a comment
+  holds the short version at the point it matters — the non-obvious constraint, the reason the naive
+  version would be wrong. Don't narrate what the line plainly does.
+- **`sync/` does not exist until Phase 2.** Don't stub it. An absent folder can't be depended on by
+  accident.
+
 ## Rules that are easy to break by accident
 
 These are the ones worth stating outright. Everything else, consult the plan.
