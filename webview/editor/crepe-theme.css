@@ -151,6 +151,36 @@
   display: none;
 }
 
+/*
+ * Keep images inside the editor.
+ *
+ * Crepe's image wrapper is `width: fit-content`, so the image's own
+ * `max-width: 100%` resolves against its natural size rather than the
+ * editor's -- a large image simply overflows, pushing the URL row and the
+ * Confirm button out of view.
+ */
+.milkdown .milkdown-image-block > .image-wrapper {
+  max-width: 100%;
+}
+
+.milkdown .milkdown-image-block > .image-wrapper img {
+  max-width: 100%;
+  height: auto;
+  /* `contain` rather than Crepe's `cover`: cropping someone's screenshot to
+     fit a box is worse than showing it smaller. */
+  object-fit: contain;
+}
+
+/* ---- Long words must wrap ---- */
+
+/*
+ * A pasted URL or an unbroken run of characters would otherwise force the
+ * whole document into horizontal scrolling.
+ */
+.milkdown .ProseMirror {
+  overflow-wrap: break-word;
+}
+
 /* ---- Popovers ---- */
 
 /*

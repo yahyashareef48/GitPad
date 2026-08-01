@@ -50,6 +50,21 @@
         }
       ]
     },
+    "languages": [
+      {
+        "id": "gitpad-note",
+        "aliases": [
+          "GitPad Note"
+        ],
+        "extensions": [
+          ".pad"
+        ],
+        "icon": {
+          "light": "media/pad-file.svg",
+          "dark": "media/pad-file.svg"
+        }
+      }
+    ],
     "customEditors": [
       {
         "viewType": "gitpad.editor",
