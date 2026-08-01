@@ -19,7 +19,7 @@ we did, and where the two diverged.
 | Milestone | Scope | Status |
 |---|---|---|
 | **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | **Done** |
-| **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | Not started |
+| **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | In progress |
 | **M2** | Custom editor with plain-text editing — proves the editor plumbing | Not started |
 | **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus, wikilinks | Not started |
 | **M4** | Trash, search + link index + backlinks, `.md` import/export, settings page → **Phase 1 ships** | Not started |
@@ -45,11 +45,46 @@ as they're answered.
 | 2 | Which Crepe blocks survive a markdown round trip, and which get disabled? | M3 | Open |
 | 3 | How much work is restyling Crepe onto VS Code theme variables, really? | M3 | Open |
 | 4 | Does `react-arborist` + hand-built context menus reach parity with a native tree? | M1 | Open |
-| 5 | Does the `.vsix` stay lean once React + `react-arborist` + Crepe land, and does activation stay under 100 ms? | M3 | Open |
+| 5 | Does the `.vsix` stay lean once React + `react-arborist` + Crepe land, and does activation stay under 100 ms? | M3 | Open — 320 kB after `react-arborist` |
+
+## Deferred, deliberately
+
+| Item | Why it waits |
+|---|---|
+| **Sidebar visual polish** — spacing, icons, row density, empty states, header treatment | Raised 2026-08-01. The tree is correct but plain. Deliberately deferred until CRUD, search and context menus are in, so the design work happens once against the finished surface rather than being redone after each addition. Not forgotten; it is scheduled, not skipped. |
 
 ---
 
 ## Log
+
+### 2026-08-01 — M1: vault setup, tree, and a rendering bug worth remembering
+**Commits:** `bd02f28`, `ce02c90`, `8f6a382`, `5614b30`, `f39d88c`, `2df3185`, `73a02eb`
+**Milestone:** M1 (in progress)
+
+- **Vault core** — `VaultLayout`, `VaultConfig`, `VaultService`, and the foreign-repo guard.
+  `detectVaultCandidate` walks ancestors, treats `.git` as present whether directory or file
+  (worktrees use a file), and still flags a vault nested inside a foreign repo.
+- **Setup flow + welcome screen** — React arrives ahead of the tree so the welcome screen isn't
+  written twice. Folder picker deliberately has no `defaultUri`.
+- **Tree** — visibility filter, advisory `.gitpad-order`, `react-arborist`, `FileSystemWatcher`.
+- **Vault header** — the vault was chosen once and then invisible, with no way to switch.
+
+**The bug worth remembering.** The tree rendered nothing whenever notes existed. `NoteTree`
+returned early for the empty case, unmounting the element holding the measuring ref; both sizing
+effects run once on mount, found `ref.current === null`, and never attached a `ResizeObserver`.
+When notes arrived the element mounted but the effects had `[]` deps and never re-ran, so the tree
+stayed 0×0 — and a virtualised tree at zero height draws nothing. No error, no clue, and "No notes
+yet" never appeared because `nodes` was populated the whole time.
+
+**What let it hide:** every unit test ran against `InMemoryFileSystem`, so `VsCodeFileSystem` had
+never executed in a test. All 54 passed while the sidebar showed nothing. Integration tests now
+exercise the real adapter and real `VaultTree` against a temp directory (10 integration tests, up
+from 2). They passed, which is what located the fault in the webview.
+
+**Lesson recorded:** a port with no integration test is a port that has never run. Every adapter in
+`platform/` needs at least one test against the real thing.
+
+**Deviation:** none from the plan; `.gitpad-order` and visibility landed as designed.
 
 ### 2026-08-01 — M0 complete: ports, boundary rule, test harnesses
 **Commits:** `a472b99`, `25d2cff`, `60bac77`, `c991a9a`, `e7ac2c8`

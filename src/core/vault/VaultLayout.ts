@@ -68,8 +68,20 @@ export class VaultLayout {
   public contains(candidate: string): boolean {
     const relative = path.relative(this.root, path.resolve(candidate));
 
-    // Empty means the path IS the root; `..` means above it; absolute means a
-    // different drive on Windows.
-    return relative !== '' && !relative.startsWith('..') && !path.isAbsolute(relative);
+    // Empty means the path IS the root; absolute means a different drive.
+    if (relative === '' || path.isAbsolute(relative)) {
+      return false;
+    }
+
+    /*
+     * Compare the first SEGMENT against `..`, not the string prefix.
+     *
+     * `relative.startsWith('..')` also rejects perfectly legal filenames that
+     * happen to begin with two dots -- `..hidden.pad`, or `.. .. escape.pad`,
+     * which is what the title sanitiser produces from "../../escape". Those
+     * are ordinary files inside the vault, and refusing them would make the
+     * guard fire on safe input while catching nothing extra.
+     */
+    return relative.split(path.sep)[0] !== '..';
   }
 }

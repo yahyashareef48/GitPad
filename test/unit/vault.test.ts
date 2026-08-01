@@ -48,6 +48,15 @@ describe('VaultLayout', () => {
     expect(layout.contains(path.resolve('/etc/passwd'))).toBe(false);
     expect(layout.contains(path.join(VAULT, 'a', '..', '..', 'b'))).toBe(false);
   });
+
+  it('accepts filenames that merely begin with dots', () => {
+    // A prefix check on ".." rejects these, which are ordinary files inside
+    // the vault -- ".. .. escape" is what the title sanitiser produces from
+    // "../../escape", and it is harmless.
+    expect(layout.contains(path.join(VAULT, '..hidden.pad'))).toBe(true);
+    expect(layout.contains(path.join(VAULT, '.. .. escape.pad'))).toBe(true);
+    expect(layout.contains(path.join(VAULT, '...pad'))).toBe(true);
+  });
 });
 
 describe('parseVaultConfig', () => {
