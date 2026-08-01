@@ -1,5 +1,5 @@
 import { Tree, type NodeRendererProps } from 'react-arborist';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { TreeNodeDto } from '../../src/shared/protocol';
 
@@ -83,6 +83,24 @@ function Row({ node, style, dragHandle }: NodeRendererProps<TreeNodeDto>) {
 function useElementSize() {
   const ref = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
+
+  /*
+   * Measured synchronously before paint, not only from the ResizeObserver.
+   *
+   * The observer fires asynchronously, so relying on it alone means the first
+   * render is 0x0 -- and a virtualised tree at zero height draws nothing. If
+   * the observer then never fires (which it will not when the element's box
+   * does not subsequently change) the panel simply stays empty, with no error.
+   */
+  useLayoutEffect(() => {
+    const element = ref.current;
+
+    if (element !== null) {
+      const box = element.getBoundingClientRect();
+
+      setSize({ width: box.width, height: box.height });
+    }
+  }, []);
 
   useEffect(() => {
     const element = ref.current;

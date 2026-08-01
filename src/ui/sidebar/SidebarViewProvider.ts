@@ -124,7 +124,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     }
 
     try {
-      this.post({ type: 'tree', nodes: await this.tree.build(state.root) });
+      const nodes = await this.tree.build(state.root);
+
+      // Logged at info because "the sidebar looks empty" is answerable from
+      // here: either the scan found nothing (a filter or path problem) or it
+      // found something and the fault is in rendering.
+      this.logger.info(`Tree built for ${state.root}: ${nodes.length} top-level entries`);
+
+      this.post({ type: 'tree', nodes });
     } catch (error) {
       // A vault on an unmounted drive, or one deleted while open. Log it and
       // leave the previous tree on screen rather than blanking the sidebar.
@@ -133,6 +140,14 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   }
 
   private post(message: HostToSidebar): void {
-    void this.view?.webview.postMessage(message);
+    if (this.view === undefined) {
+      // Not a failure: the sidebar is destroyed while hidden and asks for
+      // everything again on reveal. Logged because a message vanishing here
+      // otherwise looks identical to one that was never sent.
+      this.logger.debug(`Dropped ${message.type}: sidebar not resolved`);
+      return;
+    }
+
+    void this.view.webview.postMessage(message);
   }
 }
