@@ -41,12 +41,17 @@ const webviewConfig = {
   // One entry per webview surface. They are listed explicitly (rather than
   // globbed) so adding a surface is a deliberate act, not an accident.
   entryPoints: {
-    sidebar: 'webview/sidebar/main.ts',
+    sidebar: 'webview/sidebar/main.tsx',
   },
   outdir: 'dist/webview',
   platform: 'browser',
   format: 'esm',
   target: 'es2022',
+  // The automatic runtime means components do not each need to import React.
+  jsx: 'automatic',
+  // React ships development-only warnings guarded by this; without it the
+  // production bundle keeps the whole dev build.
+  define: { 'process.env.NODE_ENV': production ? '"production"' : '"development"' },
   // Shared code between surfaces becomes its own chunk instead of being
   // duplicated into each bundle. Matters once the editor and settings
   // surfaces land alongside the sidebar.

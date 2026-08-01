@@ -32,9 +32,12 @@ export function renderWebviewHtml(options: WebviewHtmlOptions): string {
 
   // Local resources must be rewritten to vscode-webview:// URIs; a plain
   // filesystem path will not load inside the iframe.
-  const scriptUri = webview.asWebviewUri(
-    vscode.Uri.joinPath(extensionUri, 'dist', 'webview', `${entry}.js`),
-  );
+  const asset = (file: string) =>
+    webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'dist', 'webview', file));
+
+  const scriptUri = asset(`${entry}.js`);
+  // esbuild emits a sibling stylesheet for every entry that imports CSS.
+  const styleUri = asset(`${entry}.css`);
 
   /*
    * `default-src 'none'` denies everything, then each source is re-allowed
@@ -64,6 +67,7 @@ export function renderWebviewHtml(options: WebviewHtmlOptions): string {
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="${csp}">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="${styleUri}">
   <title>${title}</title>
 </head>
 <body>

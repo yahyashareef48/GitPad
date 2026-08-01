@@ -1,10 +1,17 @@
 import * as vscode from 'vscode';
 
+import { VaultService } from './core/vault/VaultService';
 import { OutputChannelLogger } from './platform/OutputChannelLogger';
+import { SystemClock } from './platform/SystemClock';
+import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
+import { VaultController } from './ui/vault/VaultController';
 
 /*
  * Activation does wiring and nothing else -- no logic lives here.
+ *
+ * This is the one place that knows which implementation satisfies which port,
+ * which is what keeps the rest of the codebase depending on interfaces.
  *
  * GitPad activates on `onStartupFinished` rather than lazily on first view,
  * because sync needs to pull changes from other devices before the user looks
@@ -14,14 +21,27 @@ import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
  */
 export function activate(context: vscode.ExtensionContext): void {
   const logger = new OutputChannelLogger();
-  context.subscriptions.push(logger);
+  const fs = new VsCodeFileSystem();
+  const clock = new SystemClock();
+
+  const vaults = new VaultService(fs, clock, logger);
+  const vault = new VaultController(fs, vaults, logger);
+  const sidebar = new SidebarViewProvider(context.extensionUri, vault);
 
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider(
-      SidebarViewProvider.viewType,
-      new SidebarViewProvider(context.extensionUri),
-    ),
+    logger,
+    vault,
+    sidebar,
+    vscode.window.registerWebviewViewProvider(SidebarViewProvider.viewType, sidebar),
+    vscode.commands.registerCommand('gitpad.createVault', () => vault.chooseVault('create')),
+    vscode.commands.registerCommand('gitpad.openVault', () => vault.chooseVault('open')),
   );
+
+  // Not awaited: activation should not block on disk. The sidebar renders its
+  // loading state and updates when this resolves.
+  void vault.restore().catch((error: unknown) => {
+    logger.error('Failed to restore the configured vault', error);
+  });
 
   logger.info('GitPad activated.');
 }

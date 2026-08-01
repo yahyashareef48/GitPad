@@ -12,19 +12,25 @@
  *  - this file imports nothing, so neither environment can leak into the other
  */
 
+/** What the sidebar should be showing. */
+export type VaultState =
+  /** No vault configured yet -- the sidebar shows the welcome screen. */
+  | { readonly kind: 'no-vault' }
+  /** A vault is open. Its contents arrive separately once the tree lands. */
+  | { readonly kind: 'ready'; readonly root: string };
+
 /** Messages the sidebar webview sends to the extension host. */
-export type SidebarToHost = {
+export type SidebarToHost =
   /**
    * Sent once the webview script has executed and is ready to render.
    * The host must not post state before receiving this: a webview that is
    * still loading silently drops messages.
    */
-  readonly type: 'ready';
-};
+  | { readonly type: 'ready' }
+  /** Welcome screen: pick a folder and set up a new vault in it. */
+  | { readonly type: 'createVault' }
+  /** Welcome screen: pick a folder that already holds notes. */
+  | { readonly type: 'openVault' };
 
 /** Messages the extension host sends to the sidebar webview. */
-export type HostToSidebar = {
-  /** First payload after `ready`. Placeholder until the tree lands in M1. */
-  readonly type: 'init';
-  readonly text: string;
-};
+export type HostToSidebar = { readonly type: 'vaultState'; readonly state: VaultState };

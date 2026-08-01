@@ -49,6 +49,28 @@
           "type": "webview"
         }
       ]
+    },
+    "commands": [
+      {
+        "command": "gitpad.createVault",
+        "title": "Create Vault",
+        "category": "GitPad"
+      },
+      {
+        "command": "gitpad.openVault",
+        "title": "Open Vault",
+        "category": "GitPad"
+      }
+    ],
+    "configuration": {
+      "title": "GitPad",
+      "properties": {
+        "gitpad.vault.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to your GitPad vault — the folder your notes live in. Keep this separate from any code project: GitPad manages everything inside it."
+        }
+      }
     }
   },
   "scripts": {
@@ -67,6 +89,8 @@
     "@eslint/js": "^10.0.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "^20.x",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@types/vscode": "^1.90.0",
     "@vscode/test-cli": "^0.0.12",
     "@vscode/test-electron": "^2.5.2",
@@ -76,5 +100,9 @@
     "typescript": "^5.x",
     "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
   }
 }

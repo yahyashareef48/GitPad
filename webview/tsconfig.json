@@ -6,6 +6,7 @@
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
+    "jsx": "react-jsx",
     // Deliberately empty: pulling in @types/node here would let webview code
     // reference Node APIs that do not exist in the iframe sandbox.
     "types": [],

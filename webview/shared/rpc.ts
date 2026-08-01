@@ -14,13 +14,20 @@ interface VsCodeApi {
 
 declare function acquireVsCodeApi(): VsCodeApi;
 
+export interface Bridge<Outgoing, Incoming> {
+  post(message: Outgoing): void;
+  onMessage(handler: (message: Incoming) => void): () => void;
+  getState(): unknown;
+  setState(state: unknown): void;
+}
+
 /**
  * A typed channel for one webview surface.
  *
  * `acquireVsCodeApi()` may only be called once per webview, so this must be
  * called exactly once per surface and the result shared.
  */
-export function createBridge<Outgoing, Incoming>() {
+export function createBridge<Outgoing, Incoming>(): Bridge<Outgoing, Incoming> {
   const api = acquireVsCodeApi();
 
   return {
@@ -28,10 +35,17 @@ export function createBridge<Outgoing, Incoming>() {
       api.postMessage(message);
     },
 
-    onMessage(handler: (message: Incoming) => void): void {
-      window.addEventListener('message', (event: MessageEvent) => {
+    /** Returns an unsubscribe function, so React effects can clean up. */
+    onMessage(handler: (message: Incoming) => void): () => void {
+      const listener = (event: MessageEvent) => {
         handler(event.data as Incoming);
-      });
+      };
+
+      window.addEventListener('message', listener);
+
+      return () => {
+        window.removeEventListener('message', listener);
+      };
     },
 
     /**
