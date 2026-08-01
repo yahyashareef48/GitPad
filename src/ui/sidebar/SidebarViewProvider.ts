@@ -1,5 +1,7 @@
 import * as vscode from 'vscode';
 
+import type { Logger } from '../../core/ports/Logger';
+import type { VaultTree } from '../../core/vault/VaultTree';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
 import type { VaultController } from '../vault/VaultController';
 import { renderWebviewHtml } from '../webview/WebviewHost';
@@ -25,10 +27,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   public constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly vault: VaultController,
+    private readonly tree: VaultTree,
+    private readonly logger: Logger,
   ) {
     this.subscriptions.push(
       this.vault.onDidChangeState((state) => {
         this.post({ type: 'vaultState', state });
+        void this.refreshTree();
+      }),
+      this.vault.onDidChangeContents(() => {
+        void this.refreshTree();
       }),
     );
   }
@@ -73,6 +81,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         // Only safe to send state once the webview says it is listening --
         // messages posted to a still-loading webview are dropped silently.
         this.post({ type: 'vaultState', state: this.vault.state });
+        await this.refreshTree();
         break;
 
       case 'createVault':
@@ -82,6 +91,44 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       case 'openVault':
         await this.vault.chooseVault('open');
         break;
+
+      case 'openDocument':
+        await this.openDocument(message.id);
+        break;
+    }
+  }
+
+  /**
+   * Opens a note in an editor tab.
+   *
+   * Until the custom editor lands in M2 this is VS Code's plain text editor,
+   * which is genuinely useful in the meantime: it shows that `.pad` files are
+   * ordinary markdown, readable without GitPad.
+   */
+  private async openDocument(id: string): Promise<void> {
+    try {
+      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(id));
+
+      await vscode.window.showTextDocument(document, { preview: true });
+    } catch (error) {
+      this.logger.error(`Could not open ${id}`, error);
+    }
+  }
+
+  private async refreshTree(): Promise<void> {
+    const state = this.vault.state;
+
+    if (state.kind !== 'ready') {
+      this.post({ type: 'tree', nodes: [] });
+      return;
+    }
+
+    try {
+      this.post({ type: 'tree', nodes: await this.tree.build(state.root) });
+    } catch (error) {
+      // A vault on an unmounted drive, or one deleted while open. Log it and
+      // leave the previous tree on screen rather than blanking the sidebar.
+      this.logger.error(`Could not read the vault at ${state.root}`, error);
     }
   }
 

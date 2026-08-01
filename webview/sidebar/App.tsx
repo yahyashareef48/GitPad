@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
 
-import type { HostToSidebar, SidebarToHost, VaultState } from '../../src/shared/protocol';
+import type {
+  HostToSidebar,
+  SidebarToHost,
+  TreeNodeDto,
+  VaultState,
+} from '../../src/shared/protocol';
 import type { Bridge } from '../shared/rpc';
+import { NoteTree } from './NoteTree';
 import { WelcomeView } from './WelcomeView';
 
 /*
@@ -21,17 +27,24 @@ export function App({ bridge }: AppProps) {
   // "no vault" -- showing the welcome screen during that gap would make the
   // buttons flash on every reload for users who already have a vault.
   const [vault, setVault] = useState<VaultState | undefined>(undefined);
+  const [nodes, setNodes] = useState<readonly TreeNodeDto[]>([]);
 
   useEffect(() => {
-    bridge.onMessage((message) => {
+    const unsubscribe = bridge.onMessage((message) => {
       switch (message.type) {
         case 'vaultState':
           setVault(message.state);
+          break;
+
+        case 'tree':
+          setNodes(message.nodes);
           break;
       }
     });
 
     bridge.post({ type: 'ready' });
+
+    return unsubscribe;
   }, [bridge]);
 
   if (vault === undefined) {
@@ -48,9 +61,6 @@ export function App({ bridge }: AppProps) {
   }
 
   return (
-    <div className="placeholder">
-      <p>Vault open. The notes tree lands next.</p>
-      <p className="placeholder__path">{vault.root}</p>
-    </div>
+    <NoteTree nodes={nodes} onOpen={(id) => bridge.post({ type: 'openDocument', id })} />
   );
 }

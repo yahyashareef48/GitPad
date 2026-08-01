@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 
+import { NOTE_EXTENSION } from './core/vault/VaultLayout';
 import { VaultService } from './core/vault/VaultService';
+import { VaultTree } from './core/vault/VaultTree';
 import { OutputChannelLogger } from './platform/OutputChannelLogger';
 import { SystemClock } from './platform/SystemClock';
 import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
@@ -26,7 +28,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const vaults = new VaultService(fs, clock, logger);
   const vault = new VaultController(fs, vaults, logger);
-  const sidebar = new SidebarViewProvider(context.extensionUri, vault);
+
+  // Extensions the tree should show. Becomes the DocumentTypeRegistry's
+  // registered extensions in Phase 3; a hardcoded set until there is more than
+  // one type to register.
+  const tree = new VaultTree(fs, logger, new Set([NOTE_EXTENSION]));
+  const sidebar = new SidebarViewProvider(context.extensionUri, vault, tree, logger);
 
   context.subscriptions.push(
     logger,

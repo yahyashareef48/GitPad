@@ -19,9 +19,15 @@ const VAULT_PATH_SETTING = 'gitpad.vault.path';
 
 export class VaultController implements vscode.Disposable {
   private readonly stateChanged = new vscode.EventEmitter<VaultState>();
+  private readonly contentsChanged = new vscode.EventEmitter<void>();
   private layout: VaultLayout | undefined;
+  private watcher: vscode.FileSystemWatcher | undefined;
 
+  /** Fires when a different vault is opened. */
   public readonly onDidChangeState = this.stateChanged.event;
+
+  /** Fires when files inside the current vault change, from any source. */
+  public readonly onDidChangeContents = this.contentsChanged.event;
 
   public constructor(
     private readonly fs: FileSystem,
@@ -86,6 +92,34 @@ export class VaultController implements vscode.Disposable {
 
   public dispose(): void {
     this.stateChanged.dispose();
+    this.contentsChanged.dispose();
+    this.watcher?.dispose();
+  }
+
+  /**
+   * Watches the vault for changes made anywhere -- by GitPad, by the OS file
+   * manager, or by git pulling in another device's edits.
+   *
+   * The filesystem is the source of truth, so the tree is rebuilt from it
+   * rather than patched in place; that is what keeps an external change from
+   * leaving the sidebar showing something that is no longer there.
+   */
+  private watch(layout: VaultLayout): void {
+    this.watcher?.dispose();
+
+    this.watcher = vscode.workspace.createFileSystemWatcher(
+      new vscode.RelativePattern(vscode.Uri.file(layout.root), '**/*'),
+    );
+
+    const fire = () => {
+      this.contentsChanged.fire();
+    };
+
+    this.watcher.onDidCreate(fire);
+    this.watcher.onDidDelete(fire);
+    // Renames arrive as delete + create, so onDidChange is only needed for
+    // edits -- which can still reorder the tree via the order file.
+    this.watcher.onDidChange(fire);
   }
 
   private async pickFolder(mode: 'create' | 'open'): Promise<string | undefined> {
@@ -141,6 +175,7 @@ export class VaultController implements vscode.Disposable {
     options: { readonly adoptedForeignRepo?: boolean } = {},
   ): Promise<void> {
     this.layout = await this.vaults.initialize(root, options);
+    this.watch(this.layout);
 
     await vscode.workspace
       .getConfiguration()
