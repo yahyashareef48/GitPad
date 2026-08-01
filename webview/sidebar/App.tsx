@@ -8,6 +8,7 @@ import type {
 } from '../../src/shared/protocol';
 import type { Bridge } from '../shared/rpc';
 import { NoteTree } from './NoteTree';
+import { VaultHeader } from './VaultHeader';
 import { WelcomeView } from './WelcomeView';
 
 /*
@@ -48,7 +49,7 @@ export function App({ bridge }: AppProps) {
   }, [bridge]);
 
   if (vault === undefined) {
-    return null;
+    return <div className="placeholder">Loading…</div>;
   }
 
   if (vault.kind === 'no-vault') {
@@ -61,6 +62,12 @@ export function App({ bridge }: AppProps) {
   }
 
   return (
-    <NoteTree nodes={nodes} onOpen={(id) => bridge.post({ type: 'openDocument', id })} />
+    <div className="shell">
+      <VaultHeader root={vault.root} onChange={() => bridge.post({ type: 'openVault' })} />
+
+      <div className="shell__body">
+        <NoteTree nodes={nodes} onOpen={(id) => bridge.post({ type: 'openDocument', id })} />
+      </div>
+    </div>
   );
 }

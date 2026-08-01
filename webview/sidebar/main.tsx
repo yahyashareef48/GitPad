@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import type { HostToSidebar, SidebarToHost } from '../../src/shared/protocol';
 import { createBridge } from '../shared/rpc';
 import { App } from './App';
+import { ErrorBoundary } from './ErrorBoundary';
 import './styles.css';
 
 /*
@@ -20,7 +21,9 @@ const container = document.getElementById('root');
 if (container !== null) {
   createRoot(container).render(
     <StrictMode>
-      <App bridge={bridge} />
+      <ErrorBoundary>
+        <App bridge={bridge} />
+      </ErrorBoundary>
     </StrictMode>,
   );
 }

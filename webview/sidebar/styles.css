@@ -96,13 +96,84 @@ body {
   opacity: 0.7;
 }
 
-/* ---- Notes tree ---- */
+/* ---- Layout ---- */
 
-html,
-body,
-#root {
-  height: 100%;
+/*
+ * Sized from the viewport rather than a chain of height:100% rules. The chain
+ * silently collapses to zero if any ancestor forgets it, and a zero-height
+ * virtualised tree renders as an empty panel with no error.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
+
+.shell__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.vault-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--vscode-sideBarSectionHeader-border, transparent);
+}
+
+.vault-header__name {
+  flex: 1;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-button {
+  padding: 2px 6px;
+  border: none;
+  border-radius: 2px;
+  color: var(--vscode-foreground);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9em;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.icon-button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+/* ---- Errors ---- */
+
+.error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.error__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.error__detail {
+  margin: 0;
+  color: var(--vscode-errorForeground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Notes tree ---- */
 
 /* react-arborist virtualises rows, so it needs measured pixel dimensions
    rather than filling its parent through CSS. This element is what gets
