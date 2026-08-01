@@ -45,6 +45,7 @@ export function Editor({ bridge }: EditorProps) {
 
   const { container, ready, setMarkdown } = useCrepe({
     initial,
+    onOpenWikilink: (target) => bridge.post({ type: 'openWikilink', target }),
     onChange: (markdown) => {
       latest.current = markdown;
 

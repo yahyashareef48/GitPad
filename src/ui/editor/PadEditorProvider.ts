@@ -1,7 +1,10 @@
 import * as vscode from 'vscode';
 
 import type { Clock } from '../../core/ports/Clock';
+import { linkKey } from '../../core/links/wikilink';
 import type { NoteService } from '../../core/vault/NoteService';
+import { NOTE_EXTENSION } from '../../core/vault/VaultLayout';
+import { VaultTree } from '../../core/vault/VaultTree';
 import type { FileSystem } from '../../core/ports/FileSystem';
 import type { Logger } from '../../core/ports/Logger';
 import * as path from 'node:path';
@@ -188,6 +191,10 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
         case 'rename':
           void this.rename(document, panel, message.title);
           break;
+
+        case 'openWikilink':
+          void this.openWikilink(message.target);
+          break;
       }
     });
 
@@ -278,6 +285,63 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       vscode.window.showErrorMessage(
         error instanceof Error ? error.message : 'Could not rename the note.',
       );
+    }
+  }
+
+  /**
+   * Follows a `[[wikilink]]`, offering to create the note if it is missing.
+   *
+   * Resolution matches the index: by filename stem, case-insensitively, so a
+   * link keeps working when the note is moved or its title recased.
+   */
+  private async openWikilink(target: string): Promise<void> {
+    const layout = this.vault.currentLayout;
+
+    if (layout === undefined) {
+      return;
+    }
+
+    const tree = new VaultTree(this.fs, this.logger, new Set([NOTE_EXTENSION]));
+    const match = findByTitle(await tree.build(layout.root), linkKey(target));
+
+    if (match !== undefined) {
+      await vscode.commands.executeCommand(
+        'vscode.openWith',
+        vscode.Uri.file(match),
+        PadEditorProvider.viewType,
+      );
+
+      return;
+    }
+
+    /*
+     * Offer to create it rather than reporting an error.
+     *
+     * Linking to a note before writing it is a normal way to work, so the
+     * useful response to a missing target is to make it exist.
+     */
+    const create = 'Create note';
+
+    const choice = await vscode.window.showInformationMessage(
+      `No note called “${target}”.`,
+      create,
+    );
+
+    if (choice !== create) {
+      return;
+    }
+
+    try {
+      const created = await this.notes.createNote(layout, layout.root);
+      const renamed = await this.notes.rename(layout, created, target);
+
+      await vscode.commands.executeCommand(
+        'vscode.openWith',
+        vscode.Uri.file(renamed),
+        PadEditorProvider.viewType,
+      );
+    } catch (error) {
+      this.logger.error(`Could not create a note for ${target}`, error);
     }
   }
 
@@ -382,4 +446,29 @@ function readMeta(document: PadDocument): NoteMetaDto {
     created: readField(frontmatter, 'created'),
     updated: readField(frontmatter, 'updated'),
   };
+}
+
+/** Depth-first search for a document whose filename stem matches `key`. */
+function findByTitle(
+  nodes: readonly { id: string; name: string; children?: readonly unknown[] }[],
+  key: string,
+): string | undefined {
+  for (const node of nodes) {
+    if (node.children === undefined) {
+      if (linkKey(node.name) === key) {
+        return node.id;
+      }
+    } else {
+      const found = findByTitle(
+        node.children as readonly { id: string; name: string; children?: readonly unknown[] }[],
+        key,
+      );
+
+      if (found !== undefined) {
+        return found;
+      }
+    }
+  }
+
+  return undefined;
 }

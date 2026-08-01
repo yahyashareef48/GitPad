@@ -160,7 +160,14 @@ export type EditorToHost =
    * final name -- it is sanitised for the filesystem and uniquified against
    * siblings, so it may differ from what was typed.
    */
-  | { readonly type: 'rename'; readonly title: string };
+  | { readonly type: 'rename'; readonly title: string }
+  /**
+   * Follow a `[[wikilink]]`.
+   *
+   * Carries the target as written; the host resolves it, because resolution
+   * needs the vault and the webview has no view of it.
+   */
+  | { readonly type: 'openWikilink'; readonly target: string };
 
 /** Messages the extension host sends to the editor webview. */
 export type HostToEditor =

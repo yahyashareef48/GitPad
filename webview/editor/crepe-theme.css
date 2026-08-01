@@ -151,6 +151,25 @@
   display: none;
 }
 
+/* ---- Wikilinks ---- */
+
+/*
+ * Styled by decoration, so the underlying text is still ordinary `[[Note]]`
+ * markdown -- the brackets remain visible and editable, which is what keeps
+ * the file readable in Obsidian or on GitHub.
+ */
+.gitpad-wikilink {
+  border-radius: 3px;
+  color: var(--vscode-textLink-foreground);
+  background: var(--vscode-textCodeBlock-background, transparent);
+  cursor: pointer;
+}
+
+.gitpad-wikilink:hover {
+  color: var(--vscode-textLink-activeForeground);
+  text-decoration: underline;
+}
+
 /* ---- Long words must wrap ---- */
 
 /*

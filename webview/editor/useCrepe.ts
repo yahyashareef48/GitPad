@@ -1,9 +1,10 @@
 import { Crepe } from '@milkdown/crepe';
-import { remarkStringifyOptionsCtx } from '@milkdown/kit/core';
+import { prosePluginsCtx, remarkStringifyOptionsCtx } from '@milkdown/kit/core';
 import { replaceAll } from '@milkdown/kit/utils';
 import { useEffect, useRef, useState } from 'react';
 
 import { REMARK_STRINGIFY_OPTIONS } from '../../src/shared/remarkSettings';
+import { createWikilinkPlugin } from './wikilinkPlugin';
 
 /*
  * Mounts a Crepe editor into a DOM node and keeps it in step with the host.
@@ -18,9 +19,11 @@ interface UseCrepeOptions {
   readonly initial: string | undefined;
   /** Called when the user changes the document. Not called for remote updates. */
   readonly onChange: (markdown: string) => void;
+  /** Called when a `[[wikilink]]` is followed. */
+  readonly onOpenWikilink: (target: string) => void;
 }
 
-export function useCrepe({ initial, onChange }: UseCrepeOptions) {
+export function useCrepe({ initial, onChange, onOpenWikilink }: UseCrepeOptions) {
   const container = useRef<HTMLDivElement>(null);
   const crepe = useRef<Crepe | undefined>(undefined);
   const [ready, setReady] = useState(false);
@@ -34,6 +37,9 @@ export function useCrepe({ initial, onChange }: UseCrepeOptions) {
    */
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+
+  const onOpenWikilinkRef = useRef(onOpenWikilink);
+  onOpenWikilinkRef.current = onOpenWikilink;
 
   /*
    * Set while applying markdown that came FROM the host -- undo, redo, revert,
@@ -103,6 +109,13 @@ export function useCrepe({ initial, onChange }: UseCrepeOptions) {
      */
     editor.editor.config((ctx) => {
       ctx.set(remarkStringifyOptionsCtx, REMARK_STRINGIFY_OPTIONS);
+
+      // Read through a ref so the plugin is installed once, not rebuilt on
+      // every render along with the callback identity.
+      ctx.update(prosePluginsCtx, (plugins) => [
+        ...plugins,
+        createWikilinkPlugin((target) => onOpenWikilinkRef.current(target)),
+      ]);
     });
 
     editor.on((listener) => {
