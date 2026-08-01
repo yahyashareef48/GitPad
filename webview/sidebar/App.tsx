@@ -7,6 +7,7 @@ import type {
   VaultState,
 } from '../../src/shared/protocol';
 import type { Bridge } from '../shared/rpc';
+import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NoteTree } from './NoteTree';
 import { VaultHeader } from './VaultHeader';
 import { WelcomeView } from './WelcomeView';
@@ -32,6 +33,9 @@ export function App({ bridge }: AppProps) {
   // Purely a view concern: the user asked to switch vaults but has not yet
   // picked one. The host knows nothing about it, and cancelling costs nothing.
   const [choosing, setChoosing] = useState(false);
+  const [menu, setMenu] = useState<{ node: TreeNodeDto; x: number; y: number } | undefined>(
+    undefined,
+  );
 
   useEffect(() => {
     const unsubscribe = bridge.onMessage((message) => {
@@ -86,13 +90,59 @@ export function App({ bridge }: AppProps) {
     );
   }
 
+  const menuItems = (node: TreeNodeDto): readonly MenuItem[] => [
+    ...(node.kind === 'folder'
+      ? [
+          {
+            label: 'New note here',
+            onSelect: () => bridge.post({ type: 'createNote', parentId: node.id }),
+          },
+          {
+            label: 'New folder here',
+            onSelect: () => bridge.post({ type: 'createFolder', parentId: node.id }),
+          },
+        ]
+      : []),
+    {
+      label: 'Rename',
+      onSelect: () => bridge.post({ type: 'renameItem', id: node.id, currentName: node.name }),
+      separated: node.kind === 'folder',
+    },
+    ...(node.kind === 'document'
+      ? [{ label: 'Duplicate', onSelect: () => bridge.post({ type: 'duplicateItem', id: node.id }) }]
+      : []),
+    {
+      label: 'Delete',
+      onSelect: () => bridge.post({ type: 'trashItem', id: node.id, name: node.name }),
+      separated: true,
+    },
+  ];
+
   return (
     <div className="shell">
-      <VaultHeader root={vault.root} onChange={() => setChoosing(true)} />
+      <VaultHeader
+        root={vault.root}
+        onChange={() => setChoosing(true)}
+        onNewNote={() => bridge.post({ type: 'createNote' })}
+        onNewFolder={() => bridge.post({ type: 'createFolder' })}
+      />
 
       <div className="shell__body">
-        <NoteTree nodes={nodes} onOpen={(id) => bridge.post({ type: 'openDocument', id })} />
+        <NoteTree
+          nodes={nodes}
+          onOpen={(id) => bridge.post({ type: 'openDocument', id })}
+          onContextMenu={(node, x, y) => setMenu({ node, x, y })}
+        />
       </div>
+
+      {menu === undefined ? null : (
+        <ContextMenu
+          x={menu.x}
+          y={menu.y}
+          items={menuItems(menu.node)}
+          onClose={() => setMenu(undefined)}
+        />
+      )}
     </div>
   );
 }

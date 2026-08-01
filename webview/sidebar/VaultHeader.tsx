@@ -9,9 +9,11 @@
 interface VaultHeaderProps {
   readonly root: string;
   readonly onChange: () => void;
+  readonly onNewNote: () => void;
+  readonly onNewFolder: () => void;
 }
 
-export function VaultHeader({ root, onChange }: VaultHeaderProps) {
+export function VaultHeader({ root, onChange, onNewNote, onNewFolder }: VaultHeaderProps) {
   return (
     <header className="vault-header">
       {/* The full path is the tooltip: a sidebar is narrow, and the folder
@@ -20,8 +22,16 @@ export function VaultHeader({ root, onChange }: VaultHeaderProps) {
         {basename(root)}
       </span>
 
+      <button type="button" className="icon-button" title="New note" onClick={onNewNote}>
+        ＋
+      </button>
+
+      <button type="button" className="icon-button" title="New folder" onClick={onNewFolder}>
+        ⊞
+      </button>
+
       <button type="button" className="icon-button" title="Open a different vault" onClick={onChange}>
-        Change
+        ⋯
       </button>
     </header>
   );

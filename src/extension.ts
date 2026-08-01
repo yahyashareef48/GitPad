@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { NoteService } from './core/vault/NoteService';
 import { NOTE_EXTENSION } from './core/vault/VaultLayout';
 import { VaultService } from './core/vault/VaultService';
 import { VaultTree } from './core/vault/VaultTree';
@@ -33,7 +34,8 @@ export function activate(context: vscode.ExtensionContext): void {
   // registered extensions in Phase 3; a hardcoded set until there is more than
   // one type to register.
   const tree = new VaultTree(fs, logger, new Set([NOTE_EXTENSION]));
-  const sidebar = new SidebarViewProvider(context.extensionUri, vault, tree, logger);
+  const notes = new NoteService(fs, clock, logger);
+  const sidebar = new SidebarViewProvider(context.extensionUri, vault, tree, notes, logger);
 
   context.subscriptions.push(
     logger,

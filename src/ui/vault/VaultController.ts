@@ -37,6 +37,11 @@ export class VaultController implements vscode.Disposable {
     private readonly logger: Logger,
   ) {}
 
+  /** The open vault's paths, or undefined when none is open. */
+  public get currentLayout(): VaultLayout | undefined {
+    return this.layout;
+  }
+
   public get state(): VaultState {
     if (this.layout !== undefined) {
       return { kind: 'ready', root: this.layout.root };

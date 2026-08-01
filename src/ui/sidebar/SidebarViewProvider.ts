@@ -1,6 +1,8 @@
 import * as vscode from 'vscode';
 
 import type { Logger } from '../../core/ports/Logger';
+import type { NoteService } from '../../core/vault/NoteService';
+import type { VaultLayout } from '../../core/vault/VaultLayout';
 import type { VaultTree } from '../../core/vault/VaultTree';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
 import type { VaultController } from '../vault/VaultController';
@@ -28,6 +30,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     private readonly extensionUri: vscode.Uri,
     private readonly vault: VaultController,
     private readonly tree: VaultTree,
+    private readonly notes: NoteService,
     private readonly logger: Logger,
   ) {
     this.subscriptions.push(
@@ -95,6 +98,113 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       case 'openDocument':
         await this.openDocument(message.id);
         break;
+
+      case 'createNote':
+        await this.withVault(async (layout) => {
+          const created = await this.notes.createNote(layout, message.parentId ?? layout.root);
+
+          await this.refreshTree();
+          // Opened immediately: a new note you cannot type into is not much
+          // use, and this is the point where naming it makes sense.
+          await this.openDocument(created);
+        });
+        break;
+
+      case 'createFolder':
+        await this.withVault(async (layout) => {
+          await this.notes.createFolder(layout, message.parentId ?? layout.root);
+          await this.refreshTree();
+        });
+        break;
+
+      case 'renameItem':
+        await this.rename(message.id, message.currentName);
+        break;
+
+      case 'duplicateItem':
+        await this.withVault(async (layout) => {
+          await this.notes.duplicate(layout, message.id);
+          await this.refreshTree();
+        });
+        break;
+
+      case 'trashItem':
+        await this.trash(message.id, message.name);
+        break;
+    }
+  }
+
+  private async rename(id: string, currentName: string): Promise<void> {
+    const title = await vscode.window.showInputBox({
+      title: 'Rename',
+      value: currentName,
+      // Preselects the name so typing replaces it, but leaves the caret
+      // placeable for a small edit.
+      valueSelection: [0, currentName.length],
+      prompt: 'The title is the filename, so unsupported characters are replaced.',
+    });
+
+    if (title === undefined || title.trim() === '') {
+      return;
+    }
+
+    await this.withVault(async (layout) => {
+      await this.notes.rename(layout, id, title);
+      await this.refreshTree();
+    });
+  }
+
+  /**
+   * Deletes without a confirmation prompt.
+   *
+   * The item goes to `.trash/` and stays recoverable, so a modal would be
+   * friction guarding an action that is already reversible. The notification
+   * is the confirmation, and it carries the undo.
+   */
+  private async trash(id: string, name: string): Promise<void> {
+    await this.withVault(async (layout) => {
+      const trashed = await this.notes.moveToTrash(layout, id);
+
+      await this.refreshTree();
+
+      const undo = 'Undo';
+      const choice = await vscode.window.showInformationMessage(`Deleted “${name}”.`, undo);
+
+      if (choice === undo) {
+        await this.fsRename(trashed, id);
+        await this.refreshTree();
+      }
+    });
+  }
+
+  private async fsRename(from: string, to: string): Promise<void> {
+    await vscode.workspace.fs.rename(vscode.Uri.file(from), vscode.Uri.file(to), {
+      overwrite: false,
+    });
+  }
+
+  /**
+   * Runs an operation against the open vault, reporting failures visibly.
+   *
+   * File operations fail for ordinary reasons -- a file locked by another
+   * program, a permission problem, a disconnected drive -- and a silent
+   * no-op reads as GitPad being broken.
+   */
+  private async withVault(operation: (layout: VaultLayout) => Promise<void>): Promise<void> {
+    const layout = this.vault.currentLayout;
+
+    if (layout === undefined) {
+      return;
+    }
+
+    try {
+      await operation(layout);
+    } catch (error) {
+      this.logger.error('Vault operation failed', error);
+
+      vscode.window.showErrorMessage(
+        error instanceof Error ? error.message : 'The operation failed.',
+      );
     }
   }
 

@@ -14,9 +14,10 @@ import type { TreeNodeDto } from '../../src/shared/protocol';
 interface NoteTreeProps {
   readonly nodes: readonly TreeNodeDto[];
   readonly onOpen: (id: string) => void;
+  readonly onContextMenu: (node: TreeNodeDto, x: number, y: number) => void;
 }
 
-export function NoteTree({ nodes, onOpen }: NoteTreeProps) {
+export function NoteTree({ nodes, onOpen, onContextMenu }: NoteTreeProps) {
   const size = useElementSize();
 
   /*
@@ -52,14 +53,21 @@ export function NoteTree({ nodes, onOpen }: NoteTreeProps) {
             }
           }}
         >
-          {Row}
+          {(props) => <Row {...props} onContextMenu={onContextMenu} />}
         </Tree>
       )}
     </div>
   );
 }
 
-function Row({ node, style, dragHandle }: NodeRendererProps<TreeNodeDto>) {
+function Row({
+  node,
+  style,
+  dragHandle,
+  onContextMenu,
+}: NodeRendererProps<TreeNodeDto> & {
+  readonly onContextMenu: (node: TreeNodeDto, x: number, y: number) => void;
+}) {
   const isFolder = node.data.kind === 'folder';
 
   return (
@@ -73,6 +81,12 @@ function Row({ node, style, dragHandle }: NodeRendererProps<TreeNodeDto>) {
         } else {
           node.activate();
         }
+      }}
+      onContextMenu={(event) => {
+        event.preventDefault();
+        // Selected first, so the menu visibly applies to the row it opened on.
+        node.select();
+        onContextMenu(node.data, event.clientX, event.clientY);
       }}
     >
       <span className="row__twisty">{isFolder ? (node.isOpen ? '⌄' : '›') : ''}</span>

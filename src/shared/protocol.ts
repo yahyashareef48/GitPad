@@ -58,7 +58,18 @@ export type SidebarToHost =
   /** Welcome screen: pick a folder that already holds notes. */
   | { readonly type: 'openVault' }
   /** Open a document in an editor tab. */
-  | { readonly type: 'openDocument'; readonly id: string };
+  | { readonly type: 'openDocument'; readonly id: string }
+  /**
+   * Create in `parentId`, or at the vault root when omitted.
+   *
+   * The host resolves the name: titles are sanitised for the filesystem and
+   * uniquified against siblings, so the webview cannot know it in advance.
+   */
+  | { readonly type: 'createNote'; readonly parentId?: string }
+  | { readonly type: 'createFolder'; readonly parentId?: string }
+  | { readonly type: 'renameItem'; readonly id: string; readonly currentName: string }
+  | { readonly type: 'duplicateItem'; readonly id: string }
+  | { readonly type: 'trashItem'; readonly id: string; readonly name: string };
 
 /** Messages the extension host sends to the sidebar webview. */
 export type HostToSidebar =

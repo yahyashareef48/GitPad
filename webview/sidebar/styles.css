@@ -151,6 +151,44 @@ body {
   outline: 1px solid var(--vscode-focusBorder);
 }
 
+/* ---- Context menu ---- */
+
+.menu {
+  position: fixed;
+  z-index: 10;
+  min-width: 160px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, transparent));
+  border-radius: 4px;
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgb(0 0 0 / 36%));
+}
+
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: 4px 12px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover {
+  color: var(--vscode-menu-selectionForeground);
+  background: var(--vscode-menu-selectionBackground);
+}
+
+.menu__item--separated {
+  margin-top: 4px;
+  border-top: 1px solid var(--vscode-menu-separatorBackground, var(--vscode-widget-border));
+  padding-top: 8px;
+}
+
 /* ---- Errors ---- */
 
 .error {
