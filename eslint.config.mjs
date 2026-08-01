@@ -10,7 +10,11 @@ import tseslint from 'typescript-eslint';
  */
 export default tseslint.config(
   {
-    ignores: ['dist/**', 'out/**', 'node_modules/**'],
+    // .vscode-test holds a full VS Code install (~320 MB) downloaded by the
+    // integration harness. It appears only after `npm run test:integration`
+    // has run once, so forgetting it here fails long after the config looked
+    // fine.
+    ignores: ['dist/**', 'out/**', 'node_modules/**', '.vscode-test/**'],
   },
 
   js.configs.recommended,
