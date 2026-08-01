@@ -1,6 +1,9 @@
 import { Crepe } from '@milkdown/crepe';
+import { remarkStringifyOptionsCtx } from '@milkdown/kit/core';
 import { replaceAll } from '@milkdown/kit/utils';
 import { useEffect, useRef, useState } from 'react';
+
+import { REMARK_STRINGIFY_OPTIONS } from '../../src/shared/remarkSettings';
 
 /*
  * Mounts a Crepe editor into a DOM node and keeps it in step with the host.
@@ -88,6 +91,19 @@ export function useCrepe({ initial, onChange }: UseCrepeOptions) {
     });
 
     crepe.current = editor;
+
+    /*
+     * Pin how markdown is written out.
+     *
+     * Without this, remark-stringify rewrites constructs it did not author --
+     * `---` becomes `***`, bullets and emphasis markers flip. Nothing is lost,
+     * but opening and saving a note produces a diff the user did not make, and
+     * once sync exists, a commit of it. The round-trip corpus uses the same
+     * options, so the test measures what the editor actually does.
+     */
+    editor.editor.config((ctx) => {
+      ctx.set(remarkStringifyOptionsCtx, REMARK_STRINGIFY_OPTIONS);
+    });
 
     editor.on((listener) => {
       listener.markdownUpdated((_ctx, markdown) => {

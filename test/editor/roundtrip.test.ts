@@ -1,10 +1,13 @@
 // @vitest-environment jsdom
 
 import { Editor, defaultValueCtx, editorViewOptionsCtx, rootCtx } from '@milkdown/kit/core';
+import { remarkStringifyOptionsCtx } from '@milkdown/kit/core';
 import { commonmark } from '@milkdown/kit/preset/commonmark';
 import { gfm } from '@milkdown/kit/preset/gfm';
 import { getMarkdown } from '@milkdown/kit/utils';
 import { describe, expect, it } from 'vitest';
+
+import { REMARK_STRINGIFY_OPTIONS } from '../../src/shared/remarkSettings';
 
 /*
  * The round-trip guard.
@@ -31,6 +34,9 @@ async function roundTrip(markdown: string): Promise<string> {
       // Editing is irrelevant here and an editable view schedules work jsdom
       // does not need to do.
       ctx.update(editorViewOptionsCtx, (prev) => ({ ...prev, editable: () => false }));
+      // The same pinned settings the real editor uses -- a corpus testing
+      // different options from the editor would be worse than none.
+      ctx.set(remarkStringifyOptionsCtx, REMARK_STRINGIFY_OPTIONS);
     })
     .use(commonmark)
     .use(gfm)
@@ -89,31 +95,40 @@ describe('markdown round trip', () => {
 /*
  * Blocks that survive but are REWRITTEN.
  *
- * These are recorded rather than tolerated. Nothing is lost, so the hard rule
- * in plan 2.4 holds -- but every one of them means opening and saving a note
- * rewrites it, producing a diff of changes the user did not make. Plan 2.3
- * calls for pinned serializer options precisely to stop that, and Milkdown
- * exposes `remarkPluginsCtx` to do it. Until then these assertions pin the
- * CURRENT behaviour, so a change from "reformatted" to "deleted" fails loudly.
+ * Recorded rather than tolerated. Nothing is lost, so the hard rule in plan
+ * 2.4 holds, but each one means saving a note rewrites part of it.
+ *
+ * Pinning the serializer options (see src/shared/remarkSettings) removed the
+ * ones that were option-driven -- thematic breaks, bullet characters and
+ * emphasis markers. What remains is structural: the table delimiter width
+ * comes from mdast-util-gfm-table, and list looseness is decided at parse
+ * time. Both are cosmetic and stable once written, so a note churns at most
+ * once rather than on every save.
+ *
+ * These assertions pin CURRENT behaviour, so a change from "reformatted" to
+ * "deleted" fails loudly instead of quietly costing someone a paragraph.
  */
 describe('markdown round trip: known normalisations', () => {
-  it('rewrites thematic breaks as ***', async () => {
-    expect((await roundTrip('before\n\n---\n\nafter')).trimEnd()).toBe('before\n\n***\n\nafter');
+  it('preserves thematic breaks now that options are pinned', async () => {
+    expect((await roundTrip('before\n\n---\n\nafter')).trimEnd()).toBe('before\n\n---\n\nafter');
   });
 
   it('shortens table delimiter rows', async () => {
+    // mdast-util-gfm-table minimises the delimiter row and offers no option to
+    // stop it. Cosmetic, and stable once written, so a note churns at most
+    // once rather than on every save.
     const result = await roundTrip('| a | b |\n| --- | --- |\n| 1 | 2 |');
 
-    // Content intact, delimiters minimised.
     expect(result).toContain('| a | b |');
     expect(result).toContain('| 1 | 2 |');
     expect(result).toContain('| - | - |');
   });
 
   it('loosens task lists with blank lines between items', async () => {
+    // Decided at parse time by the list's `spread` flag, not by a serializer
+    // option. The checkboxes themselves survive, which is what matters.
     const result = await roundTrip('* [ ] not done\n* [x] done');
 
-    // The checkboxes themselves survive, which is what matters.
     expect(result).toContain('* [ ] not done');
     expect(result).toContain('* [x] done');
   });
