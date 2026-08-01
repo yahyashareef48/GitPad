@@ -8,6 +8,7 @@ import type { NoteService } from '../../core/vault/NoteService';
 import type { VaultLayout } from '../../core/vault/VaultLayout';
 import type { VaultTree } from '../../core/vault/VaultTree';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
+import { PadEditorProvider } from '../editor/PadEditorProvider';
 import type { RecentlyOpened } from '../vault/RecentlyOpened';
 import type { VaultController } from '../vault/VaultController';
 import { renderWebviewHtml } from '../webview/WebviewHost';
@@ -267,9 +268,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
    */
   private async openDocument(id: string): Promise<void> {
     try {
-      const document = await vscode.workspace.openTextDocument(vscode.Uri.file(id));
+      // Opened through the custom editor rather than as a text document, so
+      // clicking a note gives GitPad's editor. `vscode.openWith` names the
+      // view type explicitly instead of relying on the default association.
+      await vscode.commands.executeCommand(
+        'vscode.openWith',
+        vscode.Uri.file(id),
+        PadEditorProvider.viewType,
+      );
 
-      await vscode.window.showTextDocument(document, { preview: true });
       await this.recent.record(id);
       this.postRecent();
     } catch (error) {

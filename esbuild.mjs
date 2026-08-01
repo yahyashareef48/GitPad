@@ -42,6 +42,7 @@ const webviewConfig = {
   // globbed) so adding a surface is a deliberate act, not an accident.
   entryPoints: {
     sidebar: 'webview/sidebar/main.tsx',
+    editor: 'webview/editor/main.tsx',
   },
   outdir: 'dist/webview',
   platform: 'browser',
@@ -56,10 +57,21 @@ const webviewConfig = {
   // asset (rather than inlining ~70 kB of base64 into the CSS) keeps the font
   // cacheable and the stylesheet readable.
   loader: { '.ttf': 'file' },
-  // Shared code between surfaces becomes its own chunk instead of being
-  // duplicated into each bundle. Matters once the editor and settings
-  // surfaces land alongside the sidebar.
-  splitting: true,
+  /*
+   * Splitting is OFF, deliberately.
+   *
+   * Two reasons, either of which would be enough:
+   *
+   * 1. CSP. A split build has entries `import` a shared chunk, but our
+   *    script-src allows scripts by nonce only, and a nonce does not extend to
+   *    modules imported by a nonced script. The chunk is simply blocked at
+   *    runtime -- a blank webview with an error only visible in devtools.
+   *
+   * 2. It would not help anyway. Each surface runs in its own iframe with its
+   *    own module cache, so a "shared" chunk is fetched once per surface
+   *    regardless. Splitting buys nothing here and costs correctness.
+   */
+  splitting: false,
 };
 
 /*

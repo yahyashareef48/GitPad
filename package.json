@@ -50,6 +50,18 @@
         }
       ]
     },
+    "customEditors": [
+      {
+        "viewType": "gitpad.editor",
+        "displayName": "GitPad",
+        "selector": [
+          {
+            "filenamePattern": "*.pad"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
     "commands": [
       {
         "command": "gitpad.createVault",

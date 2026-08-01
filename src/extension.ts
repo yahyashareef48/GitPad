@@ -8,6 +8,7 @@ import { VaultTree } from './core/vault/VaultTree';
 import { OutputChannelLogger } from './platform/OutputChannelLogger';
 import { SystemClock } from './platform/SystemClock';
 import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
+import { PadEditorProvider } from './ui/editor/PadEditorProvider';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
 import { RecentlyOpened } from './ui/vault/RecentlyOpened';
 import { VaultController } from './ui/vault/VaultController';
@@ -55,11 +56,21 @@ export function activate(context: vscode.ExtensionContext): void {
     logger,
   );
 
+  const editor = new PadEditorProvider(context.extensionUri, fs, logger);
+
   context.subscriptions.push(
     logger,
     vault,
     sidebar,
+    editor,
     vscode.window.registerWebviewViewProvider(SidebarViewProvider.viewType, sidebar),
+    vscode.window.registerCustomEditorProvider(PadEditorProvider.viewType, editor, {
+      // Kept alive while hidden so switching tabs does not discard the
+      // webview and re-run its startup. Notes are small; the memory cost is
+      // not.
+      webviewOptions: { retainContextWhenHidden: true },
+      supportsMultipleEditorsPerDocument: true,
+    }),
     vscode.commands.registerCommand('gitpad.createVault', () => vault.chooseVault('create')),
     vscode.commands.registerCommand('gitpad.openVault', () => vault.chooseVault('open')),
   );

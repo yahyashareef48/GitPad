@@ -114,3 +114,37 @@ export interface RecentItemDto {
   readonly id: string;
   readonly name: string;
 }
+
+/* ---------------------------------------------------------------------------
+ * Editor channel
+ *
+ * A second, independent channel (see 1.5). The editor webview knows nothing
+ * about the sidebar and vice versa; they share only this module.
+ * ------------------------------------------------------------------------ */
+
+/** Messages the editor webview sends to the extension host. */
+export type EditorToHost =
+  /** The webview has executed and can render. Nothing is posted before this. */
+  | { readonly type: 'ready' }
+  /**
+   * The user changed the document.
+   *
+   * Carries the whole text rather than a patch. Notes are small, and a patch
+   * protocol would need its own conflict handling between the webview's view
+   * of the document and the host's -- complexity that buys nothing at this
+   * size. The rich editor in M3 may revisit this.
+   */
+  | { readonly type: 'edit'; readonly text: string };
+
+/** Messages the extension host sends to the editor webview. */
+export type HostToEditor =
+  | { readonly type: 'init'; readonly text: string; readonly editable: boolean }
+  /**
+   * Replace the editor's content wholesale.
+   *
+   * Sent for undo, redo, revert, and external file changes -- every case where
+   * the new text did NOT originate in this webview. The webview must apply it
+   * without echoing an `edit` back, or undo would immediately re-record itself
+   * as a fresh change.
+   */
+  | { readonly type: 'setText'; readonly text: string };
