@@ -32,7 +32,9 @@
    */
   --crepe-color-on-surface: var(--vscode-menu-foreground, var(--vscode-foreground));
   --crepe-color-on-surface-variant: var(--vscode-foreground);
-  --crepe-color-outline: var(--vscode-menu-border, var(--vscode-widget-border));
+  /* A border colour. Crepe also uses it for some glyphs, which are overridden
+     individually below rather than making every border harsh. */
+  --crepe-color-outline: var(--vscode-widget-border, var(--vscode-editorWidget-border));
 
   /* Accents. Crepe uses "primary" for carets, active handles and emphasis. */
   --crepe-color-primary: var(--vscode-textLink-foreground);
@@ -77,7 +79,7 @@
    * note sit mid-screen rather than against the bottom edge. Notion, Obsidian
    * and Word all do the same.
    */
-  padding: 24px 32px 40vh;
+  padding: 24px 24px 40vh 72px;
   font-size: var(--gitpad-text-size);
   line-height: 1.7;
   outline: none;
@@ -126,28 +128,59 @@
 /* ---- Uploads are out of scope (plan 2.5) ---- */
 
 /*
- * Hidden rather than left to fail. Crepe's image block offers "Upload file or
- * paste link"; the upload handlers reject, so leaving the control visible
- * advertises a feature that only produces an error. Link entry remains.
+ * The "Upload file" control is hidden rather than left to fail: the handlers
+ * reject, so showing it advertises a feature that only produces an error.
+ * Pasting a link still works, and the placeholder text is reworded through
+ * Crepe's config so the remaining prompt reads as a whole sentence.
  */
-.milkdown .milkdown-image-block .image-uploader,
-.milkdown .milkdown-image-block .uploader,
-.milkdown milkdown-image-block .image-uploader,
-.milkdown .milkdown-image-inline .uploader {
-  display: none !important;
+.milkdown .milkdown-image-block .image-edit .link-importer .placeholder .uploader,
+.milkdown .milkdown-image-block > .image-edit .link-importer .placeholder .uploader,
+.milkdown .milkdown-image-inline .empty-image-inline .link-importer .placeholder .uploader,
+.milkdown .milkdown-image-inline > .empty-image-inline .link-importer .placeholder .uploader {
+  display: none;
 }
 
-/* ---- Popovers must not be clipped ---- */
+/* ---- Popovers ---- */
 
 /*
- * The slash menu and toolbar are positioned relative to the viewport, so a
- * menu opened near the top or bottom of a short editor pane gets cut off.
- * Capping the height and letting it scroll keeps every item reachable.
+ * Crepe already scrolls `.menu-groups` at a fixed 420px. Capping the menu
+ * itself as well produced two nested scrollbars, so the cap belongs here --
+ * made viewport-aware so a menu opened in a short pane still fits.
  */
-.milkdown .milkdown-slash-menu,
-.milkdown milkdown-slash-menu {
-  max-height: min(60vh, 320px);
-  overflow-y: auto;
+.milkdown .milkdown-slash-menu .menu-groups {
+  max-height: min(420px, 50vh);
+}
+
+/*
+ * Menu icons use --crepe-color-outline, which was mapped to a border colour
+ * -- correct for borders, invisible for glyphs. Overridden here so the icons
+ * are legible without making every border harsh.
+ */
+.milkdown .milkdown-slash-menu .menu-groups .menu-group li svg {
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  fill: var(--vscode-icon-foreground, var(--vscode-foreground));
+}
+
+.milkdown .milkdown-slash-menu .menu-groups .menu-group li.hover,
+.milkdown .milkdown-slash-menu .menu-groups .menu-group li:hover {
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+}
+
+/* ---- Block handle ---- */
+
+/*
+ * The drag/add handle is absolutely positioned to the LEFT of the block, so
+ * it needs room inside the editor's padding or it is clipped by the scroll
+ * container. Two 32px controls plus breathing space.
+ */
+.milkdown .milkdown-block-handle .operation-item svg {
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  fill: var(--vscode-icon-foreground, var(--vscode-foreground));
+}
+
+.milkdown .milkdown-block-handle .operation-item:hover {
+  background: var(--vscode-toolbar-hoverBackground);
 }
 
 /* ---- Reconciling with VS Code chrome ---- */

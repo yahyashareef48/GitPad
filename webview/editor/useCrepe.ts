@@ -68,10 +68,18 @@ export function useCrepe({ initial, onChange }: UseCrepeOptions) {
           /*
            * File upload is deliberately out of scope (plan 2.5), so these
            * reject rather than half-working. Images are added by URL.
+           *
+           * The upload BUTTON is hidden in crepe-theme.css; these strings
+           * reword what remains, because "or paste link" on its own reads as
+           * the tail of a sentence whose first half has been removed.
            */
           onUpload: rejectUpload,
           inlineOnUpload: rejectUpload,
           blockOnUpload: rejectUpload,
+          blockUploadPlaceholderText: 'Paste an image link',
+          inlineUploadPlaceholderText: 'Paste an image link',
+          blockUploadButton: '',
+          inlineUploadButton: '',
         },
         [Crepe.Feature.Placeholder]: {
           text: 'Start writing…',
