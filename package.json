@@ -58,6 +58,8 @@
     "watch": "node esbuild.mjs --watch",
     "typecheck": "tsc -p ./ && tsc -p ./webview",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "package": "vsce package"
   },
   "devDependencies": {
@@ -68,6 +70,7 @@
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "typescript": "^5.x",
-    "typescript-eslint": "^8.65.0"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
   }
 }
