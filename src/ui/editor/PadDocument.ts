@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import type { FileSystem } from '../../core/ports/FileSystem';
+import type { Logger } from '../../core/ports/Logger';
 
 /*
  * The in-memory state of one open `.pad` file.
@@ -48,37 +49,63 @@ export class PadDocument implements vscode.CustomDocument {
   private constructor(
     public readonly uri: vscode.Uri,
     private readonly fs: FileSystem,
-    text: string,
+    current: string,
+    saved: string,
   ) {
-    this.currentText = text;
-    this.savedText = text;
+    this.currentText = current;
+    this.savedText = saved;
   }
 
   public static async create(
     uri: vscode.Uri,
     backupId: string | undefined,
     fs: FileSystem,
+    logger: Logger,
   ): Promise<PadDocument> {
-    /*
-     * A backup takes precedence over the file on disk.
-     *
-     * VS Code passes one when the window is reopened after closing with
-     * unsaved changes (hot exit). Reading the file instead would silently
-     * discard exactly the work the backup exists to protect.
-     */
-    const source = backupId ?? uri.fsPath;
-    const text = await readText(fs, source);
+    const onDisk = await readText(fs, uri.fsPath).catch((error: unknown) => {
+      // Opening empty beats refusing to open. A note that cannot be read at
+      // all is still better presented as a blank editor the user can act on
+      // than as a modal they can only dismiss.
+      logger.warn(`Could not read ${uri.fsPath}; opening empty`, error);
 
-    const document = new PadDocument(uri, fs, text);
+      return '';
+    });
 
-    // Restored-from-backup content differs from what is on disk, so the
-    // document must open dirty or the difference could be lost without a
-    // prompt.
-    if (backupId !== undefined) {
-      document.savedText = await readText(fs, uri.fsPath).catch(() => '');
+    if (backupId === undefined) {
+      return new PadDocument(uri, fs, onDisk, onDisk);
     }
 
-    return document;
+    /*
+     * `backupId` is a URI STRING, not a filesystem path.
+     *
+     * It is whatever backupCustomDocument returned as its id, which is
+     * `destination.toString()` -- e.g. `file:///c%3A/Users/...`. Handing that
+     * to a path-based API produces nonsense like `C:\file:\c%3A\Users\...`
+     * and the note becomes unopenable.
+     */
+    const backupPath = vscode.Uri.parse(backupId).fsPath;
+    const restored = await readText(fs, backupPath).catch((error: unknown) => {
+      logger.warn(`Backup ${backupPath} could not be read; using the file on disk`, error);
+
+      return undefined;
+    });
+
+    /*
+     * A stale backup must never block opening the note.
+     *
+     * VS Code can hand back an id for a backup that has since been cleaned up
+     * or removed. Falling back to the file on disk loses nothing that still
+     * exists, whereas throwing here makes the note permanently unopenable
+     * until the user finds and clears VS Code's storage by hand.
+     */
+    if (restored === undefined) {
+      return new PadDocument(uri, fs, onDisk, onDisk);
+    }
+
+    // Restored content differs from what is on disk, so the document opens
+    // dirty -- otherwise the recovered work could be discarded without a
+    // prompt.
+    return new PadDocument(uri, fs, restored, onDisk);
   }
 
   public get text(): string {

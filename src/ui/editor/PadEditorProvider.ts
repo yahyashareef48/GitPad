@@ -42,7 +42,7 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     uri: vscode.Uri,
     context: vscode.CustomDocumentOpenContext,
   ): Promise<PadDocument> {
-    const document = await PadDocument.create(uri, context.backupId, this.fs);
+    const document = await PadDocument.create(uri, context.backupId, this.fs, this.logger);
 
     // Forwarded rather than exposed directly: VS Code subscribes to the
     // provider, not to individual documents.
