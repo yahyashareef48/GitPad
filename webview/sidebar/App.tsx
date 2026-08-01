@@ -9,6 +9,7 @@ import type {
   VaultState,
 } from '../../src/shared/protocol';
 import type { Bridge } from '../shared/rpc';
+import { BacklinksList } from './BacklinksList';
 import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NoteTree } from './NoteTree';
 import { RecentlyOpenedList } from './RecentlyOpenedList';
@@ -41,6 +42,7 @@ export function App({ bridge }: AppProps) {
     undefined,
   );
   const [recent, setRecent] = useState<readonly RecentItemDto[]>([]);
+  const [backlinks, setBacklinks] = useState<readonly RecentItemDto[]>([]);
   const [query, setQuery] = useState('');
 
   /*
@@ -71,6 +73,10 @@ export function App({ bridge }: AppProps) {
 
         case 'recentlyOpened':
           setRecent(message.items);
+          break;
+
+        case 'backlinks':
+          setBacklinks(message.items);
           break;
       }
     });
@@ -152,10 +158,16 @@ export function App({ bridge }: AppProps) {
       {/* Hidden while filtering: the point of a filter is to narrow what is on
           screen, and a recents list that ignores the query fights that. */}
       {query === '' ? (
-        <RecentlyOpenedList
-          items={recent}
-          onOpen={(id) => bridge.post({ type: 'openDocument', id })}
-        />
+        <>
+          <BacklinksList
+            items={backlinks}
+            onOpen={(id) => bridge.post({ type: 'openDocument', id })}
+          />
+          <RecentlyOpenedList
+            items={recent}
+            onOpen={(id) => bridge.post({ type: 'openDocument', id })}
+          />
+        </>
       ) : null}
 
       <div className="shell__body">

@@ -2,6 +2,7 @@ import * as path from 'node:path';
 
 import * as vscode from 'vscode';
 
+import type { LinkGraph, LinkIndex } from '../../core/links/LinkIndex';
 import type { OrderService } from '../../core/ordering/OrderService';
 import type { Logger } from '../../core/ports/Logger';
 import type { NoteService } from '../../core/vault/NoteService';
@@ -29,6 +30,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   public static readonly viewType = 'gitpad.sidebar';
 
   private view: vscode.WebviewView | undefined;
+
+  /** Rebuilt with the tree; undefined until the first scan finishes. */
+  private graph: LinkGraph | undefined;
   private readonly subscriptions: vscode.Disposable[] = [];
 
   public constructor(
@@ -38,6 +42,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     private readonly notes: NoteService,
     private readonly recent: RecentlyOpened,
     private readonly order: OrderService,
+    private readonly links: LinkIndex,
     private readonly logger: Logger,
   ) {
     this.subscriptions.push(
@@ -48,6 +53,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       }),
       this.vault.onDidChangeContents(() => {
         void this.refreshTree();
+      }),
+      // Backlinks follow the active tab, so switching notes updates them.
+      vscode.window.tabGroups.onDidChangeTabs(() => {
+        this.postBacklinks();
       }),
       // Settings changes must take effect immediately. Requiring a reload to
       // see the result of a checkbox reads as the setting not working.
@@ -100,6 +109,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         // messages posted to a still-loading webview are dropped silently.
         this.post({ type: 'vaultState', state: this.vault.state });
         this.postRecent();
+        this.postBacklinks();
         await this.refreshTree();
         break;
 
@@ -291,6 +301,35 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     }
   }
 
+  /**
+   * Pushes backlinks for whichever note is in the active tab.
+   *
+   * Always sent, including when empty -- otherwise the panel would keep
+   * showing one note's backlinks while a different note is open.
+   */
+  private postBacklinks(): void {
+    const active = this.activeNotePath();
+    const sources = active === undefined ? [] : (this.graph?.backward.get(active) ?? []);
+
+    this.post({
+      type: 'backlinks',
+      items: sources.map((id) => ({ id, name: path.parse(id).name })),
+    });
+  }
+
+  /** The `.pad` file in the active tab, if the active tab is one. */
+  private activeNotePath(): string | undefined {
+    const tab = vscode.window.tabGroups.activeTabGroup.activeTab;
+    const input: unknown = tab?.input;
+
+    // Custom editor tabs carry a TabInputCustom, whose `uri` is the file.
+    if (input instanceof vscode.TabInputCustom || input instanceof vscode.TabInputText) {
+      return input.uri.fsPath;
+    }
+
+    return undefined;
+  }
+
   private postRecent(): void {
     const state = this.vault.state;
 
@@ -312,6 +351,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     try {
       const nodes = await this.tree.build(state.root);
+
+      // Rebuilt alongside the tree: both derive from the same scan, and a
+      // graph older than the tree would show backlinks for deleted notes.
+      this.graph = await this.links.build(state.root);
+      this.postBacklinks();
 
       // Logged at info because "the sidebar looks empty" is answerable from
       // here: either the scan found nothing (a filter or path problem) or it

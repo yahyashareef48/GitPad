@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { LinkIndex } from './core/links/LinkIndex';
 import { OrderService } from './core/ordering/OrderService';
 import { NoteService } from './core/vault/NoteService';
 import { NOTE_EXTENSION } from './core/vault/VaultLayout';
@@ -46,6 +47,7 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   const order = new OrderService(fs, logger);
+  const links = new LinkIndex(fs, logger, new Set([NOTE_EXTENSION]));
 
   const sidebar = new SidebarViewProvider(
     context.extensionUri,
@@ -54,6 +56,7 @@ export function activate(context: vscode.ExtensionContext): void {
     notes,
     recent,
     order,
+    links,
     logger,
   );
 

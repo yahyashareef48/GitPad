@@ -108,7 +108,14 @@ export type HostToSidebar =
    * about the vault, and seeing your laptop's history on your desktop would
    * be noise rather than continuity.
    */
-  | { readonly type: 'recentlyOpened'; readonly items: readonly RecentItemDto[] };
+  | { readonly type: 'recentlyOpened'; readonly items: readonly RecentItemDto[] }
+  /**
+   * Notes linking to whatever note is currently open.
+   *
+   * Sent on every active-editor change, including an empty list, so the panel
+   * cannot show one note's backlinks while another is open.
+   */
+  | { readonly type: 'backlinks'; readonly items: readonly RecentItemDto[] };
 
 export interface RecentItemDto {
   readonly id: string;
