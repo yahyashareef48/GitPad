@@ -41,7 +41,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
    * the disk means one source of truth and no extra IO -- and it catches a
    * note deleted outside GitPad just as well as one deleted inside it.
    */
-  private knownPaths = new Set<string>();
+  private knownPaths: Set<string> | undefined;
   private readonly subscriptions: vscode.Disposable[] = [];
 
   public constructor(
@@ -346,9 +346,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       state.kind === 'ready'
         ? this.recent
             .list(state.root)
-            // Before the first scan completes knownPaths is empty; showing
-            // the stored list then is better than blanking the section.
-            .filter((item) => this.knownPaths.size === 0 || this.knownPaths.has(item.id))
+            /*
+             * `undefined` means no scan has run yet, and the stored list is
+             * shown unfiltered so the section does not flash empty on
+             * reload. An EMPTY set is different: it means the scan ran and
+             * found nothing, so everything recorded is stale.
+             *
+             * Conflating the two made an emptied vault resurrect every note
+             * ever deleted from it.
+             */
+            .filter((item) => this.knownPaths === undefined || this.knownPaths.has(item.id))
         : [];
 
     this.post({ type: 'recentlyOpened', items });
