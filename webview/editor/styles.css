@@ -48,7 +48,7 @@ body {
 .note-header {
   /* Left padding matches the editor body's, so the title lines up with the
      text beneath it rather than sitting proud of it. */
-  padding: 24px 24px 4px 56px;
+  padding: 24px 24px 4px 68px;
 }
 
 .note-header__row {

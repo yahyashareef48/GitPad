@@ -32,9 +32,20 @@
    */
   --crepe-color-on-surface: var(--vscode-menu-foreground, var(--vscode-foreground));
   --crepe-color-on-surface-variant: var(--vscode-foreground);
-  /* A border colour. Crepe also uses it for some glyphs, which are overridden
-     individually below rather than making every border harsh. */
-  --crepe-color-outline: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+  /*
+   * A FOREGROUND colour, despite the name.
+   *
+   * Crepe uses --crepe-color-outline for the toolbar icons, the table
+   * add-row/column nubs and the block handle glyphs -- and separately, via
+   * color-mix at 80% transparency, for borders and dividers. Mapping it to a
+   * border colour therefore made every icon in the editor nearly invisible
+   * while the borders looked fine.
+   *
+   * Pointing it at the foreground fixes all of them at once, and the
+   * color-mix borders become "foreground at 20%", which is a perfectly
+   * ordinary border.
+   */
+  --crepe-color-outline: var(--vscode-foreground);
 
   /* Accents. Crepe uses "primary" for carets, active handles and emphasis. */
   --crepe-color-primary: var(--vscode-textLink-foreground);
@@ -79,7 +90,7 @@
    * note sit mid-screen rather than against the bottom edge. Notion, Obsidian
    * and Word all do the same.
    */
-  padding: 8px 24px 40vh 56px;
+  padding: 8px 24px 40vh 68px;
   font-size: var(--gitpad-text-size);
   line-height: 1.7;
   outline: none;
@@ -151,16 +162,6 @@
   max-height: min(420px, 50vh);
 }
 
-/*
- * Menu icons use --crepe-color-outline, which was mapped to a border colour
- * -- correct for borders, invisible for glyphs. Overridden here so the icons
- * are legible without making every border harsh.
- */
-.milkdown .milkdown-slash-menu .menu-groups .menu-group li svg {
-  color: var(--vscode-icon-foreground, var(--vscode-foreground));
-  fill: var(--vscode-icon-foreground, var(--vscode-foreground));
-}
-
 .milkdown .milkdown-slash-menu .menu-groups .menu-group li.hover,
 .milkdown .milkdown-slash-menu .menu-groups .menu-group li:hover {
   color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
@@ -170,28 +171,29 @@
 /* ---- Block handle ---- */
 
 /*
- * The add and drag controls are absolutely positioned to the LEFT of the
- * block, so they need room inside the editor's padding or the scroll
- * container clips them.
+ * Crepe sizes the add and drag controls at 32px each -- generous for a web
+ * page, an unreasonable bite out of a narrow editor pane.
  *
- * Crepe sizes them at 32px each, which is generous for a web page and takes
- * an unreasonable bite out of a narrow editor pane. At 22px the pair fits in
- * far less width and still reads clearly.
+ * They are placed by floating-ui at `left-start` with a 10px offset, so the
+ * pair needs (2 x 22) + 2 gap + 10 = 56px of clearance to the left of the
+ * text. The editor's left padding is set from that number rather than
+ * guessed, or the scroll container clips the leading control.
  */
 .milkdown .milkdown-block-handle .operation-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
-  padding: 2px;
+  /* Padding removed and centring done with flex: Crepe's 4px padding plus a
+     fixed size left the glyphs sitting off-centre in their buttons. */
+  padding: 0;
 }
 
 .milkdown .milkdown-block-handle .operation-item svg {
-  width: 18px;
-  height: 18px;
-}
-
-.milkdown .milkdown-block-handle .operation-item svg {
-  color: var(--vscode-icon-foreground, var(--vscode-foreground));
-  fill: var(--vscode-icon-foreground, var(--vscode-foreground));
+  display: block;
+  width: 16px;
+  height: 16px;
 }
 
 .milkdown .milkdown-block-handle .operation-item:hover {
