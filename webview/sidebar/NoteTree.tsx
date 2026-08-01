@@ -18,9 +18,19 @@ interface NoteTreeProps {
   readonly emptyMessage: string;
   readonly onOpen: (id: string) => void;
   readonly onContextMenu: (node: TreeNodeDto, x: number, y: number) => void;
+  readonly onMove: (id: string, parentId: string | undefined, index: number) => void;
+  /** Dragging is disabled while filtering; see the Tree props below. */
+  readonly filtering: boolean;
 }
 
-export function NoteTree({ nodes, emptyMessage, onOpen, onContextMenu }: NoteTreeProps) {
+export function NoteTree({
+  nodes,
+  emptyMessage,
+  onOpen,
+  onContextMenu,
+  onMove,
+  filtering,
+}: NoteTreeProps) {
   const size = useElementSize();
 
   /*
@@ -48,8 +58,22 @@ export function NoteTree({ nodes, emptyMessage, onOpen, onContextMenu }: NoteTre
           rowHeight={22}
           indent={12}
           disableEdit
-          disableDrag
-          disableDrop
+          /*
+           * Dragging is off while a filter is active. The visible tree is then
+           * a subset, so "dropped at index 2" means position 2 of what is
+           * shown -- not of what exists -- and writing that as the folder's
+           * order would silently rearrange notes the user cannot see.
+           */
+          disableDrag={filtering}
+          disableDrop={filtering}
+          onMove={({ dragIds, parentId, index }) => {
+            const id = dragIds[0];
+
+            if (id !== undefined) {
+              // parentId is null at the root; the protocol uses undefined.
+              onMove(id, parentId ?? undefined, index);
+            }
+          }}
           onActivate={(node) => {
             if (!node.data.children) {
               onOpen(node.data.id);

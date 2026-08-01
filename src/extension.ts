@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 
+import { OrderService } from './core/ordering/OrderService';
 import { NoteService } from './core/vault/NoteService';
 import { NOTE_EXTENSION } from './core/vault/VaultLayout';
 import { VaultService } from './core/vault/VaultService';
@@ -42,12 +43,15 @@ export function activate(context: vscode.ExtensionContext): void {
     .get<number>('gitpad.sidebar.recentlyOpenedCount', 5);
   const recent = new RecentlyOpened(context.globalState, recentLimit);
 
+  const order = new OrderService(fs, logger);
+
   const sidebar = new SidebarViewProvider(
     context.extensionUri,
     vault,
     tree,
     notes,
     recent,
+    order,
     logger,
   );
 

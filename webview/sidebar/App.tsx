@@ -164,6 +164,8 @@ export function App({ bridge }: AppProps) {
           emptyMessage={query === '' ? 'No notes yet.' : `Nothing matches “${query}”.`}
           onOpen={(id) => bridge.post({ type: 'openDocument', id })}
           onContextMenu={(node, x, y) => setMenu({ node, x, y })}
+          onMove={(id, parentId, index) => bridge.post({ type: 'moveItem', id, parentId, index })}
+          filtering={query !== ''}
         />
       </div>
 

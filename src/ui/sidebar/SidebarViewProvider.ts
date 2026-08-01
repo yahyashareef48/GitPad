@@ -1,5 +1,8 @@
+import * as path from 'node:path';
+
 import * as vscode from 'vscode';
 
+import type { OrderService } from '../../core/ordering/OrderService';
 import type { Logger } from '../../core/ports/Logger';
 import type { NoteService } from '../../core/vault/NoteService';
 import type { VaultLayout } from '../../core/vault/VaultLayout';
@@ -33,6 +36,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     private readonly tree: VaultTree,
     private readonly notes: NoteService,
     private readonly recent: RecentlyOpened,
+    private readonly order: OrderService,
     private readonly logger: Logger,
   ) {
     this.subscriptions.push(
@@ -136,6 +140,10 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         await this.trash(message.id, message.name);
         break;
 
+      case 'moveItem':
+        await this.move(message.id, message.parentId, message.index);
+        break;
+
       case 'openSettings':
         // Stand-in until the dedicated settings page lands in M4. Filtering by
         // extension id gives GitPad's settings and nothing else.
@@ -145,6 +153,28 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         );
         break;
     }
+  }
+
+  /**
+   * Applies a drag: move the file if the folder changed, then record the new
+   * position within the destination folder.
+   *
+   * Order is recorded from the destination's contents AFTER the move, read
+   * from disk rather than from the tree the webview held. The webview's copy
+   * predates the move and would put the item back where it came from.
+   */
+  private async move(id: string, parentId: string | undefined, index: number): Promise<void> {
+    await this.withVault(async (layout) => {
+      const destination = parentId ?? layout.root;
+      const moved = await this.notes.move(layout, id, destination);
+
+      const siblings = (await this.tree.build(destination)).map((node) =>
+        path.basename(node.id),
+      );
+
+      await this.order.reorder(destination, siblings, path.basename(moved), index);
+      await this.refreshTree();
+    });
   }
 
   private async rename(id: string, currentName: string): Promise<void> {

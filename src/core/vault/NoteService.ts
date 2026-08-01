@@ -124,6 +124,39 @@ export class NoteService {
     return trashed;
   }
 
+  /**
+   * Moves an item into another folder, keeping its name where possible.
+   *
+   * Returns the new path, which gains a numeric suffix if the destination
+   * already holds something by that name.
+   */
+  public async move(layout: VaultLayout, target: string, destination: string): Promise<string> {
+    const extension = path.extname(target);
+    const stem = path.basename(target, extension);
+
+    if (path.dirname(target) === destination) {
+      return target;
+    }
+
+    // Moving a folder into itself, or into its own descendant, would detach
+    // the subtree from the vault entirely.
+    if (destination === target || destination.startsWith(`${target}${path.sep}`)) {
+      throw new Error('A folder cannot be moved inside itself.');
+    }
+
+    const moved = path.join(
+      destination,
+      `${uniquifyStem(stem, await this.takenNames(destination))}${extension}`,
+    );
+
+    this.assertInside(layout, moved);
+
+    await this.fs.rename(target, moved);
+    this.logger.info(`Moved ${target} to ${moved}`);
+
+    return moved;
+  }
+
   /** Lowercased names of everything in `folder`, for collision checks. */
   private async takenNames(folder: string): Promise<Set<string>> {
     const entries = await this.fs.readDirectory(folder);

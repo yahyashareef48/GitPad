@@ -76,7 +76,19 @@ export type SidebarToHost =
    * Currently VS Code's own settings UI filtered to this extension. The
    * dedicated settings page (plan 5.4) replaces this in M4.
    */
-  | { readonly type: 'openSettings' };
+  | { readonly type: 'openSettings' }
+  /**
+   * Drag-and-drop result.
+   *
+   * `parentId` is the destination folder, or undefined for the vault root.
+   * `index` is the position within that folder's visible order.
+   */
+  | {
+      readonly type: 'moveItem';
+      readonly id: string;
+      readonly parentId?: string;
+      readonly index: number;
+    };
 
 /** Messages the extension host sends to the sidebar webview. */
 export type HostToSidebar =
