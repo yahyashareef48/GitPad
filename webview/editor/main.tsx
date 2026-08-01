@@ -4,6 +4,8 @@ import { createRoot } from 'react-dom/client';
 import type { EditorToHost, HostToEditor } from '../../src/shared/protocol';
 import { createBridge } from '../shared/rpc';
 import { Editor } from './Editor';
+// VS Code's own icon font, for the title header. CC-BY-4.0; see the README.
+import '@vscode/codicons/dist/codicon.css';
 /*
  * Crepe's structural CSS, imported piece by piece.
  *

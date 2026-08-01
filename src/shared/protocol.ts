@@ -124,6 +124,15 @@ export interface RecentItemDto {
 
 export type EditorTextSize = 'small' | 'medium' | 'large';
 
+/** Note identity and timestamps, shown in the editor's title header. */
+export interface NoteMetaDto {
+  /** The filename stem -- the title IS the filename (plan 2.6). */
+  readonly title: string;
+  /** ISO 8601, from frontmatter. Absent on notes that have none. */
+  readonly created?: string;
+  readonly updated?: string;
+}
+
 /** Messages the editor webview sends to the extension host. */
 export type EditorToHost =
   /** The webview has executed and can render. Nothing is posted before this. */
@@ -136,7 +145,15 @@ export type EditorToHost =
    * of the document and the host's -- complexity that buys nothing at this
    * size. The rich editor in M3 may revisit this.
    */
-  | { readonly type: 'edit'; readonly text: string };
+  | { readonly type: 'edit'; readonly text: string }
+  /**
+   * The user edited the title header.
+   *
+   * The title is the filename, so this renames the file. The host resolves the
+   * final name -- it is sanitised for the filesystem and uniquified against
+   * siblings, so it may differ from what was typed.
+   */
+  | { readonly type: 'rename'; readonly title: string };
 
 /** Messages the extension host sends to the editor webview. */
 export type HostToEditor =
@@ -145,9 +162,12 @@ export type HostToEditor =
       readonly text: string;
       readonly editable: boolean;
       readonly textSize: EditorTextSize;
+      readonly meta: NoteMetaDto;
     }
   /** Sent when settings change, so the editor updates without a reload. */
   | { readonly type: 'settings'; readonly textSize: EditorTextSize }
+  /** Sent after a save or rename, so the header's timestamps stay current. */
+  | { readonly type: 'meta'; readonly meta: NoteMetaDto }
   /**
    * Replace the editor's content wholesale.
    *

@@ -27,7 +27,75 @@ body {
   opacity: 0.7;
 }
 
-.crepe {
+/*
+ * The page scrolls as one, so the title header moves with the text rather
+ * than staying pinned. A note is a document, not an application pane, and a
+ * fixed header would eat vertical space that the writing needs.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
   height: 100%;
   overflow: auto;
+}
+
+.crepe {
+  flex: 1;
+}
+
+/* ---- Note header ---- */
+
+.note-header {
+  /* Left padding matches the editor body's, so the title lines up with the
+     text beneath it rather than sitting proud of it. */
+  padding: 24px 24px 4px 56px;
+}
+
+.note-header__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.note-header__icon {
+  flex: 0 0 auto;
+  color: var(--vscode-icon-foreground, var(--vscode-descriptionForeground));
+  font-size: 18px;
+}
+
+/*
+ * An input styled as a heading, not a heading with contenteditable.
+ *
+ * It gets keyboard behaviour, placeholder support and screen-reader semantics
+ * for free, none of which a contenteditable div has without being rebuilt.
+ */
+.note-header__title {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: calc(var(--gitpad-text-size, 13px) * 2);
+  font-weight: 600;
+  line-height: 1.3;
+  outline: none;
+}
+
+.note-header__title::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+  opacity: 0.6;
+}
+
+.note-header__meta {
+  display: flex;
+  gap: 6px;
+  margin: 6px 0 0 26px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+}
+
+.note-header__dot {
+  opacity: 0.6;
 }

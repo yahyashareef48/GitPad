@@ -79,7 +79,7 @@
    * note sit mid-screen rather than against the bottom edge. Notion, Obsidian
    * and Word all do the same.
    */
-  padding: 24px 24px 40vh 72px;
+  padding: 8px 24px 40vh 56px;
   font-size: var(--gitpad-text-size);
   line-height: 1.7;
   outline: none;
@@ -170,10 +170,25 @@
 /* ---- Block handle ---- */
 
 /*
- * The drag/add handle is absolutely positioned to the LEFT of the block, so
- * it needs room inside the editor's padding or it is clipped by the scroll
- * container. Two 32px controls plus breathing space.
+ * The add and drag controls are absolutely positioned to the LEFT of the
+ * block, so they need room inside the editor's padding or the scroll
+ * container clips them.
+ *
+ * Crepe sizes them at 32px each, which is generous for a web page and takes
+ * an unreasonable bite out of a narrow editor pane. At 22px the pair fits in
+ * far less width and still reads clearly.
  */
+.milkdown .milkdown-block-handle .operation-item {
+  width: 22px;
+  height: 22px;
+  padding: 2px;
+}
+
+.milkdown .milkdown-block-handle .operation-item svg {
+  width: 18px;
+  height: 18px;
+}
+
 .milkdown .milkdown-block-handle .operation-item svg {
   color: var(--vscode-icon-foreground, var(--vscode-foreground));
   fill: var(--vscode-icon-foreground, var(--vscode-foreground));

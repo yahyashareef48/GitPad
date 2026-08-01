@@ -1,9 +1,19 @@
 import * as vscode from 'vscode';
 
 import type { Clock } from '../../core/ports/Clock';
+import type { NoteService } from '../../core/vault/NoteService';
 import type { FileSystem } from '../../core/ports/FileSystem';
 import type { Logger } from '../../core/ports/Logger';
-import type { EditorTextSize, EditorToHost, HostToEditor } from '../../shared/protocol';
+import * as path from 'node:path';
+
+import { parseDocument, readField } from '../../core/markdown/frontmatter';
+import type {
+  EditorTextSize,
+  EditorToHost,
+  HostToEditor,
+  NoteMetaDto,
+} from '../../shared/protocol';
+import type { VaultController } from '../vault/VaultController';
 import { renderWebviewHtml } from '../webview/WebviewHost';
 import type { AutoSave } from './AutoSave';
 import { PadDocument } from './PadDocument';
@@ -39,6 +49,8 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     private readonly fs: FileSystem,
     private readonly autoSave: AutoSave,
     private readonly clock: Clock,
+    private readonly notes: NoteService,
+    private readonly vault: VaultController,
     private readonly logger: Logger,
   ) {}
 
@@ -155,12 +167,17 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
             text: document.body,
             editable: true,
             textSize: readTextSize(),
+            meta: readMeta(document),
           } satisfies HostToEditor);
           break;
 
         case 'edit':
           document.editBody(message.text);
           this.autoSave.schedule(document.uri);
+          break;
+
+        case 'rename':
+          void this.rename(document, panel, message.title);
           break;
       }
     });
@@ -197,6 +214,64 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     });
   }
 
+  /**
+   * Renames the note by renaming its file, then reopens it.
+   *
+   * A custom editor is bound to a URI, so the file cannot be renamed
+   * underneath it -- the open document would point at a path that no longer
+   * exists. Reopening at the new URI and closing the old tab is the only
+   * honest way to do this, and it is why the rename is committed on blur
+   * rather than per keystroke.
+   */
+  private async rename(
+    document: PadDocument,
+    panel: vscode.WebviewPanel,
+    title: string,
+  ): Promise<void> {
+    const layout = this.vault.currentLayout;
+
+    if (layout === undefined) {
+      return;
+    }
+
+    try {
+      // Unsaved work first: the rename moves the file, and anything still
+      // queued would be written to a path that no longer exists.
+      await this.autoSave.flush(document.uri);
+
+      const renamed = await this.notes.rename(layout, document.uri.fsPath, title);
+
+      if (renamed === document.uri.fsPath) {
+        // Sanitising or uniquifying landed on the current name. Nothing moved,
+        // but the header may be showing what the user typed rather than what
+        // the file is called.
+        void panel.webview.postMessage({
+          type: 'meta',
+          meta: readMeta(document),
+        } satisfies HostToEditor);
+
+        return;
+      }
+
+      const column = panel.viewColumn;
+
+      await vscode.commands.executeCommand(
+        'vscode.openWith',
+        vscode.Uri.file(renamed),
+        PadEditorProvider.viewType,
+        column,
+      );
+
+      panel.dispose();
+    } catch (error) {
+      this.logger.error(`Could not rename ${document.uri.fsPath}`, error);
+
+      vscode.window.showErrorMessage(
+        error instanceof Error ? error.message : 'Could not rename the note.',
+      );
+    }
+  }
+
   public saveCustomDocument(
     document: PadDocument,
     cancellation: vscode.CancellationToken,
@@ -205,7 +280,11 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     // would write the same content again a moment later.
     this.autoSave.cancel(document.uri);
 
-    return document.save(cancellation);
+    return document.save(cancellation).then(() => {
+      // The save just stamped `updated`, so the header would otherwise show
+      // a timestamp one save behind.
+      this.broadcast(document, { type: 'meta', meta: readMeta(document) });
+    });
   }
 
   public saveCustomDocumentAs(
@@ -282,4 +361,16 @@ function readTextSize(): EditorTextSize {
   return vscode.workspace
     .getConfiguration()
     .get<EditorTextSize>('gitpad.editor.textSize', 'medium');
+}
+
+/** Title comes from the filename; timestamps come from frontmatter. */
+function readMeta(document: PadDocument): NoteMetaDto {
+  const { frontmatter } = parseDocument(document.text);
+  const stem = path.parse(document.uri.fsPath).name;
+
+  return {
+    title: stem,
+    created: readField(frontmatter, 'created'),
+    updated: readField(frontmatter, 'updated'),
+  };
 }

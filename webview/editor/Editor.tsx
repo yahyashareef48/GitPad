@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
-import type { EditorToHost, HostToEditor } from '../../src/shared/protocol';
+import type { EditorToHost, HostToEditor, NoteMetaDto } from '../../src/shared/protocol';
 import type { Bridge } from '../shared/rpc';
+import { NoteHeader } from './NoteHeader';
 import { useCrepe } from './useCrepe';
 
 /*
@@ -38,6 +39,7 @@ function applyTextSize(size: string): void {
 
 export function Editor({ bridge }: EditorProps) {
   const [initial, setInitial] = useState<string | undefined>(undefined);
+  const [meta, setMeta] = useState<NoteMetaDto | undefined>(undefined);
   const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef<string | undefined>(undefined);
 
@@ -62,7 +64,12 @@ export function Editor({ bridge }: EditorProps) {
       switch (message.type) {
         case 'init':
           setInitial(message.text);
+          setMeta(message.meta);
           applyTextSize(message.textSize);
+          break;
+
+        case 'meta':
+          setMeta(message.meta);
           break;
 
         case 'settings':
@@ -125,9 +132,14 @@ export function Editor({ bridge }: EditorProps) {
   }, [bridge]);
 
   return (
-    <>
+    <div className="page">
       {initial === undefined || !ready ? <div className="loading">Loading…</div> : null}
+
+      {meta === undefined ? null : (
+        <NoteHeader meta={meta} onRename={(title) => bridge.post({ type: 'rename', title })} />
+      )}
+
       <div className="crepe" ref={container} />
-    </>
+    </div>
   );
 }
