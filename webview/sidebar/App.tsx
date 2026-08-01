@@ -48,7 +48,10 @@ export function App({ bridge }: AppProps) {
     return unsubscribe;
   }, [bridge]);
 
-  if (vault === undefined) {
+  // `undefined` is "the host has not replied"; `loading` is "the host replied,
+  // and it is still checking for a saved vault". Both must avoid the welcome
+  // screen, or someone who already has a vault gets asked to pick one again.
+  if (vault === undefined || vault.kind === 'loading') {
     return <div className="placeholder">Loading…</div>;
   }
 

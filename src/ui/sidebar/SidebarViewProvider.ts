@@ -119,6 +119,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const state = this.vault.state;
 
     if (state.kind !== 'ready') {
+      // Covers 'loading' and 'no-vault' alike: there is nothing to show, and
+      // an empty tree is correct for both.
       this.post({ type: 'tree', nodes: [] });
       return;
     }

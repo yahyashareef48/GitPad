@@ -22,6 +22,8 @@ export class VaultController implements vscode.Disposable {
   private readonly contentsChanged = new vscode.EventEmitter<void>();
   private layout: VaultLayout | undefined;
   private watcher: vscode.FileSystemWatcher | undefined;
+  /** False until restore() has finished, however it finished. */
+  private restored = false;
 
   /** Fires when a different vault is opened. */
   public readonly onDidChangeState = this.stateChanged.event;
@@ -36,9 +38,12 @@ export class VaultController implements vscode.Disposable {
   ) {}
 
   public get state(): VaultState {
-    return this.layout === undefined
-      ? { kind: 'no-vault' }
-      : { kind: 'ready', root: this.layout.root };
+    if (this.layout !== undefined) {
+      return { kind: 'ready', root: this.layout.root };
+    }
+
+    // "Not checked yet" is not "no vault". See VaultState in the protocol.
+    return this.restored ? { kind: 'no-vault' } : { kind: 'loading' };
   }
 
   /**
@@ -50,23 +55,40 @@ export class VaultController implements vscode.Disposable {
    * on.
    */
   public async restore(): Promise<void> {
-    const configured = vscode.workspace.getConfiguration().get<string>(VAULT_PATH_SETTING);
+    try {
+      const configured = vscode.workspace.getConfiguration().get<string>(VAULT_PATH_SETTING);
 
-    this.logger.info(`Restoring vault from ${VAULT_PATH_SETTING}: ${JSON.stringify(configured)}`);
+      this.logger.info(`Restoring vault from ${VAULT_PATH_SETTING}: ${JSON.stringify(configured)}`);
 
-    if (configured === undefined || configured.trim() === '') {
-      this.logger.info('No vault configured; showing the welcome screen.');
-      return;
+      if (configured === undefined || configured.trim() === '') {
+        this.logger.info('No vault configured; showing the welcome screen.');
+        return;
+      }
+
+      const stat = await this.fs.stat(configured);
+
+      if (stat?.kind !== 'directory') {
+        this.logger.warn(`Configured vault is missing or not a directory: ${configured}`);
+        return;
+      }
+
+      await this.open(configured);
+    } finally {
+      /*
+       * Marked done however this ended, including on failure.
+       *
+       * Leaving it false would strand the sidebar on "loading" forever, which
+       * is a worse outcome than showing the welcome screen: at least the
+       * welcome screen offers a way forward.
+       */
+      this.restored = true;
+
+      // open() already fired for the success case; this covers the paths that
+      // returned early, so the sidebar leaves its loading state either way.
+      if (this.layout === undefined) {
+        this.stateChanged.fire(this.state);
+      }
     }
-
-    const stat = await this.fs.stat(configured);
-
-    if (stat?.kind !== 'directory') {
-      this.logger.warn(`Configured vault is missing or not a directory: ${configured}`);
-      return;
-    }
-
-    await this.open(configured);
   }
 
   /** Welcome screen entry points. Both end in the same place. */
@@ -91,6 +113,16 @@ export class VaultController implements vscode.Disposable {
     }
 
     await this.open(folder);
+  }
+
+  /**
+   * Opens a vault without going through the folder picker.
+   *
+   * Exists so the save-then-restore cycle can be tested end to end; a modal
+   * dialog cannot be driven from a test.
+   */
+  public async openForTesting(root: string): Promise<void> {
+    await this.open(root);
   }
 
   public dispose(): void {

@@ -30,7 +30,17 @@ export interface TreeNodeDto {
 
 /** What the sidebar should be showing. */
 export type VaultState =
-  /** No vault configured yet -- the sidebar shows the welcome screen. */
+  /**
+   * Startup has not finished checking for a saved vault.
+   *
+   * Distinct from `no-vault` on purpose. Reopening a saved vault means async
+   * disk work, and the sidebar asks for state the moment it is revealed --
+   * which on a reload is immediately. Reporting `no-vault` during that window
+   * shows the welcome screen to someone who already has a vault, and if they
+   * act on it they are asked to pick one all over again.
+   */
+  | { readonly kind: 'loading' }
+  /** No vault configured -- the sidebar shows the welcome screen. */
   | { readonly kind: 'no-vault' }
   /** A vault is open. Tree contents arrive in a separate `tree` message. */
   | { readonly kind: 'ready'; readonly root: string };
