@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 import type { NoteMetaDto } from '../../src/shared/protocol';
+import { PadIcon } from '../shared/PadIcon';
 
 /*
  * The note's title and timestamps, above the editing surface.
@@ -46,9 +47,15 @@ export function NoteHeader({ meta, onRename }: NoteHeaderProps) {
 
   return (
     <header className="note-header">
-      <div className="note-header__row">
-        <span className="note-header__icon codicon codicon-file" aria-hidden />
+      {/*
+        The icon sits alongside the whole text block, not just the title, so it
+        is sized to span the title and the timestamps together.
+      */}
+      <span className="note-header__icon">
+        <PadIcon size={44} />
+      </span>
 
+      <div className="note-header__text">
         <input
           className="note-header__title"
           value={draft}
@@ -69,17 +76,17 @@ export function NoteHeader({ meta, onRename }: NoteHeaderProps) {
             }
           }}
         />
-      </div>
 
-      {meta.created === undefined && meta.updated === undefined ? null : (
-        <p className="note-header__meta">
-          {meta.created === undefined ? null : <span>Created {formatStamp(meta.created)}</span>}
-          {meta.created !== undefined && meta.updated !== undefined ? (
-            <span className="note-header__dot">·</span>
-          ) : null}
-          {meta.updated === undefined ? null : <span>Updated {formatStamp(meta.updated)}</span>}
-        </p>
-      )}
+        {meta.created === undefined && meta.updated === undefined ? null : (
+          <p className="note-header__meta">
+            {meta.created === undefined ? null : <span>Created {formatStamp(meta.created)}</span>}
+            {meta.created !== undefined && meta.updated !== undefined ? (
+              <span className="note-header__dot">·</span>
+            ) : null}
+            {meta.updated === undefined ? null : <span>Updated {formatStamp(meta.updated)}</span>}
+          </p>
+        )}
+      </div>
     </header>
   );
 }

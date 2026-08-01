@@ -46,21 +46,25 @@ body {
 /* ---- Note header ---- */
 
 .note-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   /* Left padding matches the editor body's, so the title lines up with the
      text beneath it rather than sitting proud of it. */
   padding: 24px 24px 4px 68px;
 }
 
-.note-header__row {
+.note-header__icon {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 8px;
 }
 
-.note-header__icon {
-  flex: 0 0 auto;
-  color: var(--vscode-icon-foreground, var(--vscode-descriptionForeground));
-  font-size: 18px;
+.note-header__text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
 }
 
 /*
@@ -91,7 +95,7 @@ body {
 .note-header__meta {
   display: flex;
   gap: 6px;
-  margin: 6px 0 0 26px;
+  margin: 4px 0 0;
   color: var(--vscode-descriptionForeground);
   font-size: 0.85em;
 }

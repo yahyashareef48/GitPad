@@ -145,6 +145,15 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
   ): Promise<void> {
     this.track(document, panel);
 
+    /*
+     * GitPad's mark in the tab, rather than the generic file icon.
+     *
+     * An extension cannot inject an icon into whatever file icon theme the
+     * user has chosen, but a custom editor CAN set its own tab icon -- which
+     * is the only way to make a `.pad` tab recognisable at a glance.
+     */
+    panel.iconPath = vscode.Uri.joinPath(this.extensionUri, 'media', 'pad-file.svg');
+
     panel.webview.options = {
       enableScripts: true,
       localResourceRoots: [vscode.Uri.joinPath(this.extensionUri, 'dist', 'webview')],

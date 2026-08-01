@@ -2,6 +2,7 @@ import { Tree, type NodeRendererProps } from 'react-arborist';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 import type { TreeNodeDto } from '../../src/shared/protocol';
+import { PadIcon } from '../shared/PadIcon';
 import { Icon } from './Icon';
 
 /*
@@ -121,7 +122,9 @@ function Row({
       </span>
 
       <span className="row__icon">
-        <Icon name={isFolder ? (node.isOpen ? 'folder-opened' : 'folder') : 'file'} />
+        {/* Notes carry GitPad's mark rather than a generic file glyph, so a
+            note reads as the same object here, in the tab and in the page. */}
+        {isFolder ? <Icon name={node.isOpen ? 'folder-opened' : 'folder'} /> : <PadIcon size={14} />}
       </span>
 
       <span className="row__name">{node.data.name}</span>

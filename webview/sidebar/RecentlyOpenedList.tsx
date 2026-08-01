@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import type { RecentItemDto } from '../../src/shared/protocol';
+import { PadIcon } from '../shared/PadIcon';
 import { Icon } from './Icon';
 
 /*
@@ -46,7 +47,7 @@ export function RecentlyOpenedList({ items, onOpen }: RecentlyOpenedListProps) {
               onClick={() => onOpen(item.id)}
             >
               <span className="row__icon">
-                <Icon name="file" />
+                <PadIcon size={14} />
               </span>
               <span className="row__name">{item.name}</span>
             </button>
