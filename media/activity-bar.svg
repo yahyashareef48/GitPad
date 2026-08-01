@@ -1,7 +1,12 @@
 <!-- Activity bar icon. Unlike icon.svg (the marketplace mark) this carries no
      colour of its own: VS Code themes activity bar icons itself, so the shape
-     must inherit currentColor. -->
-<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 256 256" role="img" aria-label="GitPad">
+     must inherit currentColor.
+
+     The viewBox is cropped to the mark's actual bounds (~48..204 on both axes,
+     stroke width included) rather than the 256 canvas icon.svg uses. The
+     untrimmed canvas left ~25% dead space per side, which reads as a small
+     icon next to VS Code's own activity bar glyphs. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="48 48 156 156" role="img" aria-label="GitPad">
   <g fill="none" stroke="currentColor" stroke-width="20" stroke-linecap="round">
     <path d="M150,182 A62,62 0 1 1 184,112"/>
     <path d="M184,112 V150"/>
