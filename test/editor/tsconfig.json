@@ -1,0 +1,14 @@
+{
+  // The round-trip corpus drives a real Milkdown editor, so unlike the rest of
+  // test/unit it needs DOM types and ESM resolution. Kept as its own project
+  // rather than loosening the root config, which deliberately has neither --
+  // that restriction is what stops extension-host code reaching for the DOM.
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["."]
+}

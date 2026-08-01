@@ -137,7 +137,7 @@
     "build": "node esbuild.mjs --production",
     "compile": "node esbuild.mjs",
     "watch": "node esbuild.mjs --watch",
-    "typecheck": "tsc -p ./ && tsc -p ./webview && tsc -p ./test/integration",
+    "typecheck": "tsc -p ./ && tsc -p ./webview && tsc -p ./test/integration && tsc -p ./test/editor",
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -157,6 +157,7 @@
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
     "eslint-plugin-react-hooks": "^7.1.1",
+    "jsdom": "^29.1.1",
     "typescript": "^5.x",
     "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.10"
