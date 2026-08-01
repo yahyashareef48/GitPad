@@ -8,6 +8,7 @@ import { VaultTree } from './core/vault/VaultTree';
 import { OutputChannelLogger } from './platform/OutputChannelLogger';
 import { SystemClock } from './platform/SystemClock';
 import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
+import { AutoSave } from './ui/editor/AutoSave';
 import { PadEditorProvider } from './ui/editor/PadEditorProvider';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
 import { RecentlyOpened } from './ui/vault/RecentlyOpened';
@@ -56,12 +57,14 @@ export function activate(context: vscode.ExtensionContext): void {
     logger,
   );
 
-  const editor = new PadEditorProvider(context.extensionUri, fs, logger);
+  const autoSave = new AutoSave(logger);
+  const editor = new PadEditorProvider(context.extensionUri, fs, autoSave, logger);
 
   context.subscriptions.push(
     logger,
     vault,
     sidebar,
+    autoSave,
     editor,
     vscode.window.registerWebviewViewProvider(SidebarViewProvider.viewType, sidebar),
     vscode.window.registerCustomEditorProvider(PadEditorProvider.viewType, editor, {

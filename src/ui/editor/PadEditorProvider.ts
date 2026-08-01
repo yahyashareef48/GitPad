@@ -4,6 +4,7 @@ import type { FileSystem } from '../../core/ports/FileSystem';
 import type { Logger } from '../../core/ports/Logger';
 import type { EditorToHost, HostToEditor } from '../../shared/protocol';
 import { renderWebviewHtml } from '../webview/WebviewHost';
+import type { AutoSave } from './AutoSave';
 import { PadDocument } from './PadDocument';
 
 /*
@@ -33,6 +34,7 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
   public constructor(
     private readonly extensionUri: vscode.Uri,
     private readonly fs: FileSystem,
+    private readonly autoSave: AutoSave,
     private readonly logger: Logger,
   ) {}
 
@@ -89,8 +91,25 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
 
         case 'edit':
           document.edit(message.text);
+          this.autoSave.schedule(document.uri);
           break;
       }
+    });
+
+    /*
+     * A pending save is flushed when the note stops being visible, rather than
+     * waiting out the debounce. Closing a tab mid-debounce would otherwise
+     * either lose the last few seconds of typing or raise a save prompt for
+     * changes GitPad was about to write anyway.
+     */
+    panel.onDidChangeViewState(() => {
+      if (!panel.visible) {
+        void this.autoSave.flush(document.uri);
+      }
+    });
+
+    panel.onDidDispose(() => {
+      void this.autoSave.flush(document.uri);
     });
   }
 
@@ -98,6 +117,10 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     document: PadDocument,
     cancellation: vscode.CancellationToken,
   ): Thenable<void> {
+    // A manual Ctrl+S makes any queued auto-save redundant; leaving it armed
+    // would write the same content again a moment later.
+    this.autoSave.cancel(document.uri);
+
     return document.save(cancellation);
   }
 

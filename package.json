@@ -82,6 +82,17 @@
           "default": "",
           "markdownDescription": "Absolute path to your GitPad vault — the folder your notes live in. Keep this separate from any code project: GitPad manages everything inside it."
         },
+        "gitpad.editor.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Save notes automatically shortly after you stop typing.\n\nVS Code's own `#files.autoSave#` setting does not apply to GitPad notes, so this is the setting that controls them."
+        },
+        "gitpad.editor.autoSaveDelayMs": {
+          "type": "number",
+          "default": 800,
+          "minimum": 200,
+          "markdownDescription": "How long to wait after you stop typing before saving, in milliseconds."
+        },
         "gitpad.sidebar.recentlyOpenedCount": {
           "type": "number",
           "default": 5,
