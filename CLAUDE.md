@@ -14,16 +14,24 @@ drifted instruction file confidently tells you the wrong thing. Link to the plan
 
 ## Current state
 
-Pre-M0. The repo is a bare scaffold: [src/extension.ts](src/extension.ts) is an empty `activate()`,
-`contributes` is `{}`, and the build is plain `tsc`. Essentially everything is greenfield.
+**M0 complete.** Build, ports, boundary enforcement and both test harnesses are in place. The
+sidebar renders a placeholder; no product features exist yet. M1 is next.
 
 ```bash
-npm run compile     # tsc -p ./          (M0 replaces this with esbuild, two targets)
+npm run compile          # esbuild: extension + webview + integration tests
 npm run watch
-npm run package     # vsce package
+npm run typecheck        # tsc --noEmit over all three projects (esbuild does not typecheck)
+npm run lint             # includes the architectural boundary rule
+npm test                 # vitest unit tests — milliseconds, no editor
+npm run test:integration # boots a real VS Code — seconds
+npm run package          # vsce package
 ```
 
 Press `F5` to launch the Extension Development Host.
+
+Run `typecheck`, `lint` and `test` before committing. `test:integration` downloads VS Code on first
+run, so run it before anything touching the manifest, activation, or a contributed view — not on
+every change.
 
 ## How to write code here
 

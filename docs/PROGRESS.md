@@ -18,7 +18,7 @@ we did, and where the two diverged.
 
 | Milestone | Scope | Status |
 |---|---|---|
-| **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | In progress |
+| **M0** | esbuild build, folder structure, interfaces/DI, logging, vitest + integration harness | **Done** |
 | **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | Not started |
 | **M2** | Custom editor with plain-text editing — proves the editor plumbing | Not started |
 | **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus, wikilinks | Not started |
@@ -45,10 +45,42 @@ as they're answered.
 | 2 | Which Crepe blocks survive a markdown round trip, and which get disabled? | M3 | Open |
 | 3 | How much work is restyling Crepe onto VS Code theme variables, really? | M3 | Open |
 | 4 | Does `react-arborist` + hand-built context menus reach parity with a native tree? | M1 | Open |
+| 5 | Does the `.vsix` stay lean once React + `react-arborist` + Crepe land, and does activation stay under 100 ms? | M3 | Open |
 
 ---
 
 ## Log
+
+### 2026-08-01 — M0 complete: ports, boundary rule, test harnesses
+**Commits:** `a472b99`, `25d2cff`, `60bac77`, `c991a9a`, `e7ac2c8`
+**Milestone:** M0 → **Done**
+
+- **Ports + adapters** — `FileSystem`, `Clock`, `Logger` in `core/ports/`, implemented in
+  `platform/`. `FileSystem` wraps `vscode.workspace.fs`, not `node:fs`, so a vault on Remote SSH,
+  WSL or a Codespace works unchanged. `stat()` returns `undefined` for a missing path rather than
+  throwing, because "does this exist?" is a routine question here.
+- **ESLint boundary rule** — `src/core` and `src/types` cannot import `vscode`, `platform/`, `ui/`
+  or `sync/`. Both messages name the fix and the plan section. Verified with a probe file: it
+  produces exactly the two expected errors.
+- **vitest harness** — proven with real logic rather than a placeholder: `core/naming/filename.ts`
+  (title → filename stem), 18 tests covering Windows' forbidden characters, reserved DOS device
+  names, trailing dot/space stripping, length capping, and case-insensitive uniquification.
+- **Integration harness** — `@vscode/test-cli`, 2 tests asserting the extension activates in a real
+  VS Code and contributes the activity bar container and sidebar view.
+- Activity bar icon viewBox cropped to the mark's bounds (`e7ac2c8`) — it inherited `icon.svg`'s
+  untrimmed canvas and read as ~25% too small next to native glyphs.
+
+**Verified:** `typecheck`, `lint`, `test` (18 passing), `test:integration` (2 passing), and the
+sidebar confirmed rendering in the Extension Development Host by the user.
+
+**Deviations:**
+1. `core/naming/filename.ts` is M1 work per the plan, pulled forward to give the vitest harness a
+   real subject. A harness proven by a placeholder test proves nothing.
+2. Root `tsconfig` moved to `Node16` module resolution so tsc can read the `exports` maps vitest
+   publishes types behind. No effect on esbuild, which reads its own config.
+
+**Known and accepted:** `npm audit` reports 4 advisories reached transitively through mocha, a
+devDependency of `@vscode/test-cli`. Never shipped in the `.vsix`; the offered fix is a downgrade.
 
 ### 2026-08-01 — M0: build pipeline + sidebar vertical slice
 **Commits:** `4b7f69f`, `3d59f71`
