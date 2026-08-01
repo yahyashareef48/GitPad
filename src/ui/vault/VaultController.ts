@@ -52,14 +52,17 @@ export class VaultController implements vscode.Disposable {
   public async restore(): Promise<void> {
     const configured = vscode.workspace.getConfiguration().get<string>(VAULT_PATH_SETTING);
 
+    this.logger.info(`Restoring vault from ${VAULT_PATH_SETTING}: ${JSON.stringify(configured)}`);
+
     if (configured === undefined || configured.trim() === '') {
+      this.logger.info('No vault configured; showing the welcome screen.');
       return;
     }
 
     const stat = await this.fs.stat(configured);
 
     if (stat?.kind !== 'directory') {
-      this.logger.warn(`Configured vault is missing: ${configured}`);
+      this.logger.warn(`Configured vault is missing or not a directory: ${configured}`);
       return;
     }
 
@@ -177,9 +180,29 @@ export class VaultController implements vscode.Disposable {
     this.layout = await this.vaults.initialize(root, options);
     this.watch(this.layout);
 
-    await vscode.workspace
-      .getConfiguration()
-      .update(VAULT_PATH_SETTING, root, vscode.ConfigurationTarget.Global);
+    try {
+      await vscode.workspace
+        .getConfiguration()
+        .update(VAULT_PATH_SETTING, root, vscode.ConfigurationTarget.Global);
+
+      // Read back rather than trusting the write. A setting that fails to
+      // persist looks identical to one that was never written, and the symptom
+      // -- being asked to pick a vault on every reload -- appears a whole
+      // session later.
+      const readBack = vscode.workspace.getConfiguration().get<string>(VAULT_PATH_SETTING);
+
+      if (readBack !== root) {
+        this.logger.warn(
+          `Vault path did not persist. Wrote ${root}, read back ${JSON.stringify(readBack)}.`,
+        );
+      } else {
+        this.logger.info(`Vault path saved: ${root}`);
+      }
+    } catch (error) {
+      // Not fatal: the vault is open for this session even if the setting
+      // could not be written.
+      this.logger.error(`Could not save ${VAULT_PATH_SETTING}`, error);
+    }
 
     this.stateChanged.fire(this.state);
   }

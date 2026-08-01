@@ -19,35 +19,42 @@ interface NoteTreeProps {
 export function NoteTree({ nodes, onOpen }: NoteTreeProps) {
   const size = useElementSize();
 
-  if (nodes.length === 0) {
-    return (
-      <div className="placeholder">
-        <p>No notes yet.</p>
-      </div>
-    );
-  }
-
+  /*
+   * The measured container is ALWAYS rendered, and the empty state lives
+   * inside it rather than replacing it.
+   *
+   * Returning early for the empty case unmounts the ref'd element, so the
+   * measuring effects -- which run once, on mount -- find a null ref and never
+   * attach an observer. When notes later arrive the element mounts, but the
+   * effects do not re-run, so the tree stays at 0x0 and a virtualised tree at
+   * zero height draws nothing at all. The panel then looks empty forever, with
+   * no error and no clue.
+   */
   return (
     <div className="tree" ref={size.ref}>
-      <Tree<TreeNodeDto>
-        data={nodes as TreeNodeDto[]}
-        // react-arborist virtualises, so it needs explicit pixel dimensions
-        // rather than being able to fill its parent with CSS.
-        width={size.width}
-        height={size.height}
-        rowHeight={22}
-        indent={12}
-        disableEdit
-        disableDrag
-        disableDrop
-        onActivate={(node) => {
-          if (!node.data.children) {
-            onOpen(node.data.id);
-          }
-        }}
-      >
-        {Row}
-      </Tree>
+      {nodes.length === 0 ? (
+        <div className="placeholder">No notes yet.</div>
+      ) : (
+        <Tree<TreeNodeDto>
+          data={nodes as TreeNodeDto[]}
+          // react-arborist virtualises, so it needs explicit pixel dimensions
+          // rather than being able to fill its parent with CSS.
+          width={size.width}
+          height={size.height}
+          rowHeight={22}
+          indent={12}
+          disableEdit
+          disableDrag
+          disableDrop
+          onActivate={(node) => {
+            if (!node.data.children) {
+              onOpen(node.data.id);
+            }
+          }}
+        >
+          {Row}
+        </Tree>
+      )}
     </div>
   );
 }

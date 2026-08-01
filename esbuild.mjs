@@ -65,7 +65,7 @@ const webviewConfig = {
  */
 const integrationTestConfig = {
   ...shared,
-  entryPoints: ['test/integration/extension.test.ts'],
+  entryPoints: ['test/integration/extension.test.ts', 'test/integration/filesystem.test.ts'],
   outdir: 'dist/test',
   platform: 'node',
   format: 'cjs',
