@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import reactHooks from 'eslint-plugin-react-hooks';
 import tseslint from 'typescript-eslint';
 
 /*
@@ -31,6 +32,22 @@ export default tseslint.config(
       // Prefer `import type` so type-only imports are erased at build time and
       // cannot accidentally pull a runtime module across a boundary.
       '@typescript-eslint/consistent-type-imports': 'error',
+    },
+  },
+
+  {
+    /*
+     * React's rules of hooks, on the webview only.
+     *
+     * Earned its place: a stale ref captured by an effect with an empty
+     * dependency array left the notes tree measuring 0x0 forever, and the
+     * panel simply rendered blank. This rule flags that class of mistake.
+     */
+    files: ['webview/**/*.{ts,tsx}'],
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 

@@ -126,11 +126,14 @@
     "@vscode/vsce": "^3.x",
     "esbuild": "^0.28.1",
     "eslint": "^10.8.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "typescript": "^5.x",
     "typescript-eslint": "^8.65.0",
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@milkdown/crepe": "^7.21.3",
+    "@milkdown/kit": "^7.21.3",
     "@vscode/codicons": "^0.0.46-24",
     "react": "^19.2.8",
     "react-arborist": "^3.16.0",

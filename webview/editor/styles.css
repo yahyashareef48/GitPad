@@ -27,25 +27,7 @@ body {
   opacity: 0.7;
 }
 
-.editor {
-  display: block;
-  width: 100%;
+.crepe {
   height: 100%;
-  /* Generous side padding: prose is uncomfortable to read flush against a
-     window edge, unlike code, which has a gutter doing the same job. */
-  padding: 16px 24px;
-  border: none;
-  color: inherit;
-  background: transparent;
-  /* The user's editor font, so a note looks like the rest of their editor
-     rather than like a web form. */
-  font-family: var(--vscode-editor-font-family);
-  font-size: var(--vscode-editor-font-size);
-  line-height: 1.6;
-  resize: none;
-  outline: none;
-}
-
-.editor::selection {
-  background: var(--vscode-editor-selectionBackground);
+  overflow: auto;
 }

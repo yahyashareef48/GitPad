@@ -1,0 +1,110 @@
+/*
+ * Crepe, wearing VS Code's theme.
+ *
+ * Crepe's shipped themes (frame, nord, classic) are a set of --crepe-* custom
+ * properties over its structural CSS. That means theming it is a mapping job,
+ * not a fight with its stylesheet: we import the structure and define the
+ * variables ourselves in terms of --vscode-*.
+ *
+ * Everything therefore follows the user's chosen theme automatically, light,
+ * dark, high-contrast and third-party alike -- and there are no hardcoded
+ * colours anywhere, per plan 5.5.
+ *
+ * It also removes a problem: Crepe's own themes ask for Noto Sans, Noto Serif
+ * and Space Mono, which are web fonts. Those requests would be blocked by our
+ * CSP and would not match the editor anyway.
+ */
+
+.milkdown {
+  /* Surfaces */
+  --crepe-color-background: var(--vscode-editor-background);
+  --crepe-color-on-background: var(--vscode-editor-foreground);
+  --crepe-color-surface: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  --crepe-color-surface-low: var(--vscode-editorWidget-background, var(--vscode-editor-background));
+  --crepe-color-on-surface: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground));
+  --crepe-color-on-surface-variant: var(--vscode-descriptionForeground);
+  --crepe-color-outline: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+
+  /* Accents. Crepe uses "primary" for carets, active handles and emphasis. */
+  --crepe-color-primary: var(--vscode-textLink-foreground);
+  --crepe-color-secondary: var(--vscode-editorWidget-background);
+  --crepe-color-on-secondary: var(--vscode-editor-foreground);
+  --crepe-color-inverse: var(--vscode-editorHoverWidget-background);
+  --crepe-color-on-inverse: var(--vscode-editorHoverWidget-foreground);
+
+  --crepe-color-inline-code: var(--vscode-textPreformat-foreground);
+  --crepe-color-error: var(--vscode-errorForeground);
+  --crepe-color-hover: var(--vscode-list-hoverBackground);
+  --crepe-color-selected: var(--vscode-editor-selectionBackground);
+  --crepe-color-inline-area: var(--vscode-editor-inactiveSelectionBackground);
+
+  /*
+   * Fonts come from the user's VS Code settings.
+   *
+   * Prose gets the UI font rather than the editor's monospace font: a note is
+   * writing, not code. Code blocks and inline code still get the editor font.
+   */
+  --crepe-font-title: var(--vscode-font-family);
+  --crepe-font-default: var(--vscode-font-family);
+  --crepe-font-code: var(--vscode-editor-font-family);
+
+  --crepe-shadow-1: 0 1px 3px 1px var(--vscode-widget-shadow, rgb(0 0 0 / 15%));
+  --crepe-shadow-2: 0 2px 6px 2px var(--vscode-widget-shadow, rgb(0 0 0 / 15%));
+}
+
+/* ---- Layout ---- */
+
+.milkdown {
+  height: 100%;
+  background: transparent;
+}
+
+.milkdown .ProseMirror {
+  /* Generous side padding: prose is uncomfortable flush against a window
+     edge, unlike code, which has a gutter doing the same job. */
+  padding: 24px 32px 40vh;
+  font-size: var(--vscode-font-size);
+  line-height: 1.7;
+  outline: none;
+}
+
+/*
+ * Trailing space below the last line, so writing at the end of a long note
+ * does not happen at the very bottom edge of the window. Notion, Obsidian and
+ * Word all do this for the same reason.
+ */
+
+/* ---- Reconciling with VS Code chrome ---- */
+
+.milkdown .ProseMirror a {
+  color: var(--vscode-textLink-foreground);
+}
+
+.milkdown .ProseMirror a:hover {
+  color: var(--vscode-textLink-activeForeground);
+}
+
+.milkdown .ProseMirror blockquote {
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-widget-border));
+  background: var(--vscode-textBlockQuote-background, transparent);
+}
+
+.milkdown .ProseMirror code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+}
+
+.milkdown .ProseMirror hr {
+  border-color: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+}
+
+/* Codicons are the icon language everywhere else in GitPad; Crepe's own SVGs
+   sit inside its widgets and are left alone rather than half-replaced. */
+.milkdown .ProseMirror table {
+  border-color: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+}
+
+.milkdown .ProseMirror th,
+.milkdown .ProseMirror td {
+  border-color: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+}
