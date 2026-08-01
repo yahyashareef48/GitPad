@@ -33,6 +33,15 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
   /** Rebuilt with the tree; undefined until the first scan finishes. */
   private graph: LinkGraph | undefined;
+
+  /**
+   * Every note path the last scan found.
+   *
+   * Used to prune recents. Deriving it from the tree rather than checking
+   * the disk means one source of truth and no extra IO -- and it catches a
+   * note deleted outside GitPad just as well as one deleted inside it.
+   */
+  private knownPaths = new Set<string>();
   private readonly subscriptions: vscode.Disposable[] = [];
 
   public constructor(
@@ -333,10 +342,16 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private postRecent(): void {
     const state = this.vault.state;
 
-    this.post({
-      type: 'recentlyOpened',
-      items: state.kind === 'ready' ? this.recent.list(state.root) : [],
-    });
+    const items =
+      state.kind === 'ready'
+        ? this.recent
+            .list(state.root)
+            // Before the first scan completes knownPaths is empty; showing
+            // the stored list then is better than blanking the section.
+            .filter((item) => this.knownPaths.size === 0 || this.knownPaths.has(item.id))
+        : [];
+
+    this.post({ type: 'recentlyOpened', items });
   }
 
   private async refreshTree(): Promise<void> {
@@ -355,7 +370,11 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       // Rebuilt alongside the tree: both derive from the same scan, and a
       // graph older than the tree would show backlinks for deleted notes.
       this.graph = await this.links.build(state.root);
+      this.knownPaths = collectPaths(nodes);
       this.postBacklinks();
+      // Recents are pruned against the fresh scan, so a deleted note stops
+      // being offered rather than lingering as a dead entry.
+      this.postRecent();
 
       // Logged at info because "the sidebar looks empty" is answerable from
       // here: either the scan found nothing (a filter or path problem) or it
@@ -381,4 +400,23 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
     void this.view.webview.postMessage(message);
   }
+}
+
+/** Flattens tree nodes to the set of document paths they contain. */
+function collectPaths(nodes: readonly { id: string; children?: readonly unknown[] }[]): Set<string> {
+  const paths = new Set<string>();
+
+  const walk = (list: readonly { id: string; children?: readonly unknown[] }[]): void => {
+    for (const node of list) {
+      if (node.children === undefined) {
+        paths.add(node.id);
+      } else {
+        walk(node.children as readonly { id: string; children?: readonly unknown[] }[]);
+      }
+    }
+  };
+
+  walk(nodes);
+
+  return paths;
 }
