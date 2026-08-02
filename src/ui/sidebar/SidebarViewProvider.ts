@@ -10,6 +10,7 @@ import type { NoteService } from '../../core/vault/NoteService';
 import type { VaultLayout } from '../../core/vault/VaultLayout';
 import type { TrashService } from '../../core/vault/TrashService';
 import type { VaultTree } from '../../core/vault/VaultTree';
+import { WIKILINKS_ENABLED } from '../../shared/features';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
 import { PadEditorProvider } from '../editor/PadEditorProvider';
 import type { RecentlyOpened } from '../vault/RecentlyOpened';
@@ -241,7 +242,9 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     await this.withVault(async (layout) => {
       // Captured BEFORE the rename: afterwards nothing resolves to the old
       // path, so the affected set would always come back empty.
-      const affected = await findLinkingNotes(this.renamer, layout.root, id);
+      const affected = WIKILINKS_ENABLED
+        ? await findLinkingNotes(this.renamer, layout.root, id)
+        : [];
       const renamed = await this.notes.rename(layout, id, title);
 
       await this.refreshTree();
@@ -475,7 +478,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
 
       // Rebuilt alongside the tree: both derive from the same scan, and a
       // graph older than the tree would show backlinks for deleted notes.
-      this.graph = await this.links.build(state.root);
+      // Skipped entirely while wikilinks are off -- it is a full vault read.
+      this.graph = WIKILINKS_ENABLED ? await this.links.build(state.root) : undefined;
       this.knownPaths = collectPaths(nodes);
       this.postBacklinks();
       void this.postTrash();

@@ -22,7 +22,7 @@ we did, and where the two diverged.
 | **M1** | Webview host + RPC; vault setup flow; sidebar tree, search box, recently opened, context menus; file CRUD | **Done** |
 | **M2** | Custom editor with plain-text editing — proves the editor plumbing | **Done** |
 | **M3** | Crepe editor, markdown pipeline, block audit, VS Code theming, round-trip corpus | **Done** — wikilinks moved to M4 |
-| **M4** | Trash, search + link index + backlinks, `.md` import/export, settings page → **Phase 1 ships** | Not started |
+| **M4** | Trash, full-text search, wikilinks + backlinks, settings page → **Phase 1 ships** | **Done** — wikilinks built but **disabled**; `.md` import/export dropped |
 | **M5** | Auth, repo create/clone wizard, GitService, manual "Sync now" | Not started |
 | **M6** | Scheduler, status bar, sync footer, offline/backoff | Not started |
 | **M7** | MergeEngine, conflict policy, sync simulator → **Phase 2 ships** | Not started |
@@ -51,11 +51,55 @@ as they're answered.
 
 | Item | Why it waits |
 |---|---|
+| **`[[Wikilinks]]` — built, tested, and switched OFF** | Turned off 2026-08-02 behind `WIKILINKS_ENABLED` in `src/shared/features.ts`. Everything works: the index, backlinks panel, clickable chips, `[[` autocomplete with folder disambiguation, path-qualified targets, and link rewriting on rename. What is *not* settled is note identity at the edges — what a link means when two notes share a title, when its target is deleted, when a **folder** is renamed rather than a note, and how much of that a user should have to think about. A linking feature that is right most of the time is worse than none: a link you cannot trust is one you stop using. Re-enable by flipping one constant; nothing else is required. **Remaining before it ships:** decide folder-rename behaviour, decide what a link to a deleted note should do beyond "offer to create", and cover both with tests. |
+| **`.md` import/export** | Dropped from M4 on request. Notes are already plain markdown in `.pad` files, so `ren *.pad *.md` is the whole import/export story until someone needs more. |
 | **Sidebar visual polish** — spacing, icons, row density, empty states, header treatment | Raised 2026-08-01. The tree is correct but plain. Deliberately deferred until CRUD, search and context menus are in, so the design work happens once against the finished surface rather than being redone after each addition. Not forgotten; it is scheduled, not skipped. |
 
 ---
 
 ## Log
+
+### 2026-08-02 — M4 complete: Phase 1 ships
+**Commits:** `5bd1a0d`, `0df74a4`, `68596b9`, `ccd66d7`, `48bbda2`, `7c6ff77`, `8fb2317`, `e840fcb`, `3e7cb65`, `de94251`, `4c364c9`, `d742c38`
+**Milestone:** M4 → **Done**
+
+- **Trash panel** — restore, delete permanently, empty. `.trash/` mirrors the vault's folder
+  structure, so the path records where an item came from without an index that could disagree with
+  it.
+- **Full-text search** — ranked, with excerpts, as a Quick Pick (Ctrl+Alt+F). The sidebar box stays
+  instant and title-only.
+- **Settings page** — vault summary, the settings, and the actions VS Code's settings UI cannot
+  host. Stores nothing; reads and writes VS Code configuration.
+- **Wikilinks** — complete and then **disabled**; see "Deferred, deliberately" above.
+
+**Bugs worth remembering.**
+
+1. *Restore put everything at the vault root.* I had rejected recording the original location on
+   the grounds that it meant a sidecar index that could disagree with reality — but the location
+   fits in the trash **path**, which has exactly the no-index property I wanted. The reasoning was
+   right and the conclusion was wrong.
+2. *A deleted folder drew as a note.* `TrashService` knew the difference throughout; `kind` simply
+   was not carried in the message to the webview, so the UI had nothing to draw with. Mislabelled,
+   not mishandled.
+3. *`path.extname('Q1.Reviews')` is `.Reviews`.* Splitting filenames unconditionally would have
+   stored that folder as `Q1 (stamp).Reviews` and restored it under a different name — quiet, and
+   only noticeable much later.
+4. *Link updates ran after the rename.* The backlink graph resolves links to the files they point
+   at, so once the file had moved nothing resolved to the old path and the answer was always zero.
+   The affected set has to be captured first; the API is now two steps so it cannot be got wrong.
+
+**What let (2) and (3) hide:** `InMemoryFileSystem` could not rename directories — it silently did
+nothing. Every folder-deletion test passed while exercising nothing at all. Green tests, zero
+coverage. The fake now moves subtrees like `vscode.workspace.fs.rename` does, and the trash round
+trip is additionally verified against real files, because restoring wrong loses someone's note.
+
+**Deviations:**
+1. `[[Wikilinks]]` built but disabled — recorded above rather than deleted.
+2. `.md` import/export dropped on request.
+3. Tree ordering still falls back to alphabetical rather than `created`. The search index now reads
+   frontmatter, so the data is available; wiring it up was not done.
+
+**Tests:** 168 unit, 37 integration.
 
 ### 2026-08-02 — M3 complete: the rich editor
 **Commits:** `bc687d4`, `4b76ef1`, `1e185be`, `ba00226`, `802cb1f`, `fda8f42`, `d7e3e8f`, `a841d6c`, `dfa8da9`, `22c8a5b`

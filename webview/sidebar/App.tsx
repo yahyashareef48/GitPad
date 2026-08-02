@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { WIKILINKS_ENABLED } from '../../src/shared/features';
 import { filterTree } from '../../src/shared/filterTree';
 import type {
   HostToSidebar,
@@ -166,10 +167,12 @@ export function App({ bridge }: AppProps) {
           screen, and a recents list that ignores the query fights that. */}
       {query === '' ? (
         <>
-          <BacklinksList
-            items={backlinks}
-            onOpen={(id) => bridge.post({ type: 'openDocument', id })}
-          />
+          {WIKILINKS_ENABLED ? (
+            <BacklinksList
+              items={backlinks}
+              onOpen={(id) => bridge.post({ type: 'openDocument', id })}
+            />
+          ) : null}
           <RecentlyOpenedList
             items={recent}
             onOpen={(id) => bridge.post({ type: 'openDocument', id })}

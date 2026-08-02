@@ -3,6 +3,7 @@ import { editorViewCtx, prosePluginsCtx, remarkStringifyOptionsCtx } from '@milk
 import { replaceAll } from '@milkdown/kit/utils';
 import { useEffect, useRef, useState } from 'react';
 
+import { WIKILINKS_ENABLED } from '../../src/shared/features';
 import { REMARK_STRINGIFY_OPTIONS } from '../../src/shared/remarkSettings';
 import { createWikilinkPlugin } from './wikilinkPlugin';
 import type { SuggestHandlers } from './suggestPlugin';
@@ -117,16 +118,18 @@ export function useCrepe({ initial, onChange, onOpenWikilink, suggest }: UseCrep
     editor.editor.config((ctx) => {
       ctx.set(remarkStringifyOptionsCtx, REMARK_STRINGIFY_OPTIONS);
 
-      // Read through a ref so the plugin is installed once, not rebuilt on
+      // Read through a ref so the plugins are installed once, not rebuilt on
       // every render along with the callback identity.
-      ctx.update(prosePluginsCtx, (plugins) => [
-        ...plugins,
-        createWikilinkPlugin((target) => onOpenWikilinkRef.current(target)),
-        createWikilinkSuggestPlugin({
-          onChange: (next) => suggestRef.current.onChange(next),
-          onKeyDown: (key) => suggestRef.current.onKeyDown(key),
-        }),
-      ]);
+      if (WIKILINKS_ENABLED) {
+        ctx.update(prosePluginsCtx, (plugins) => [
+          ...plugins,
+          createWikilinkPlugin((target) => onOpenWikilinkRef.current(target)),
+          createWikilinkSuggestPlugin({
+            onChange: (next) => suggestRef.current.onChange(next),
+            onKeyDown: (key) => suggestRef.current.onKeyDown(key),
+          }),
+        ]);
+      }
     });
 
     editor.on((listener) => {

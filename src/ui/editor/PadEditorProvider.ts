@@ -18,6 +18,7 @@ import type {
   LinkTargetDto,
   NoteMetaDto,
 } from '../../shared/protocol';
+import { WIKILINKS_ENABLED } from '../../shared/features';
 import type { VaultController } from '../vault/VaultController';
 import { findLinkingNotes, offerLinkUpdate } from '../vault/updateLinksOnRename';
 import { renderWebviewHtml } from '../webview/WebviewHost';
@@ -188,7 +189,9 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
 
           // Titles for `[[` autocomplete. Sent after init so the editor can
           // render before the vault scan finishes.
-          void this.postNoteTitles(panel, document.uri.fsPath);
+          if (WIKILINKS_ENABLED) {
+            void this.postNoteTitles(panel, document.uri.fsPath);
+          }
           break;
 
         case 'edit':
@@ -274,7 +277,9 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       await this.autoSave.flush(document.uri);
 
       // Captured BEFORE the rename, for the same reason as in the sidebar.
-      const affected = await findLinkingNotes(this.renamer, layout.root, document.uri.fsPath);
+      const affected = WIKILINKS_ENABLED
+        ? await findLinkingNotes(this.renamer, layout.root, document.uri.fsPath)
+        : [];
       const renamed = await this.notes.rename(layout, document.uri.fsPath, title);
 
       if (renamed === document.uri.fsPath) {
