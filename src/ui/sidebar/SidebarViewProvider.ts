@@ -444,20 +444,23 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
   private postRecent(): void {
     const state = this.vault.state;
 
+    /*
+     * Nothing is sent until the first scan has run.
+     *
+     * `knownPaths` is undefined until then, and the stored list may name
+     * notes that have since been deleted. Showing it unfiltered meant the
+     * panel opened with stale entries and then silently dropped them --
+     * worse than the brief empty it was meant to avoid, because wrong data
+     * that corrects itself is more confusing than no data. The section
+     * hides itself when empty, so it simply appears once, correct.
+     */
+    const known = this.knownPaths;
+
     const items =
-      state.kind === 'ready'
+      state.kind === 'ready' && known !== undefined
         ? this.recent
             .list(state.root)
-            /*
-             * `undefined` means no scan has run yet, and the stored list is
-             * shown unfiltered so the section does not flash empty on
-             * reload. An EMPTY set is different: it means the scan ran and
-             * found nothing, so everything recorded is stale.
-             *
-             * Conflating the two made an emptied vault resurrect every note
-             * ever deleted from it.
-             */
-            .filter((item) => this.knownPaths === undefined || this.knownPaths.has(item.id))
+            .filter((item) => known.has(item.id))
         : [];
 
     this.post({ type: 'recentlyOpened', items });
