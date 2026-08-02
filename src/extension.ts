@@ -14,6 +14,7 @@ import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
 import { AutoSave } from './ui/editor/AutoSave';
 import { PadEditorProvider } from './ui/editor/PadEditorProvider';
 import { searchNotes } from './ui/search/searchNotes';
+import { SettingsPanel } from './ui/settings/SettingsPanel';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
 import { RecentlyOpened } from './ui/vault/RecentlyOpened';
 import { VaultController } from './ui/vault/VaultController';
@@ -94,6 +95,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('gitpad.createVault', () => vault.chooseVault('create')),
     vscode.commands.registerCommand('gitpad.openVault', () => vault.chooseVault('open')),
     vscode.commands.registerCommand('gitpad.searchNotes', () => searchNotes(vault, search, logger)),
+    vscode.commands.registerCommand('gitpad.openSettings', () => {
+      SettingsPanel.show(context.extensionUri, vault, tree, trash, search, fs, logger);
+    }),
   );
 
   // Not awaited: activation should not block on disk. The sidebar renders its

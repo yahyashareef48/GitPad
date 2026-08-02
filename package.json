@@ -92,6 +92,11 @@
         "command": "gitpad.searchNotes",
         "title": "Search Notes",
         "category": "GitPad"
+      },
+      {
+        "command": "gitpad.openSettings",
+        "title": "Settings",
+        "category": "GitPad"
       }
     ],
     "keybindings": [

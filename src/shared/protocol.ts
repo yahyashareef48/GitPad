@@ -224,3 +224,28 @@ export type HostToEditor =
    * as a fresh change.
    */
   | { readonly type: 'setText'; readonly text: string };
+
+/* ---------------------------------------------------------------------------
+ * Settings channel
+ * ------------------------------------------------------------------------ */
+
+/** What the settings page shows about the vault itself. */
+export interface VaultSummaryDto {
+  readonly root: string;
+  readonly noteCount: number;
+  readonly trashCount: number;
+  /** Bytes on disk, notes only. */
+  readonly sizeBytes: number;
+}
+
+export type SettingsToHost =
+  | { readonly type: 'ready' }
+  | { readonly type: 'set'; readonly key: string; readonly value: string | number | boolean }
+  | { readonly type: 'action'; readonly action: string };
+
+export type HostToSettings = {
+  readonly type: 'state';
+  /** Current value of every editable setting, keyed by configuration key. */
+  readonly values: Readonly<Record<string, string | number | boolean>>;
+  readonly vault: VaultSummaryDto | undefined;
+};

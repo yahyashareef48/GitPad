@@ -43,6 +43,7 @@ const webviewConfig = {
   entryPoints: {
     sidebar: 'webview/sidebar/main.tsx',
     editor: 'webview/editor/main.tsx',
+    settings: 'webview/settings/main.tsx',
   },
   outdir: 'dist/webview',
   platform: 'browser',
