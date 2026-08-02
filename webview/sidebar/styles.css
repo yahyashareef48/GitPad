@@ -367,3 +367,41 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ---- Trash ---- */
+
+.trash-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 8px;
+}
+
+/*
+ * Row actions appear on hover only. Two buttons on every row permanently
+ * would make the trash the busiest-looking part of the sidebar, which is the
+ * opposite of what it deserves.
+ */
+.trash-row__action {
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+}
+
+.trash-row:hover .trash-row__action,
+.trash-row__action:focus-visible {
+  opacity: 0.85;
+}
+
+.section__action {
+  margin-left: auto;
+  padding: 0 6px;
+  color: var(--vscode-textLink-foreground);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.section__action:hover {
+  text-decoration: underline;
+}

@@ -5,6 +5,7 @@ import type {
   HostToSidebar,
   RecentItemDto,
   SidebarToHost,
+  TrashItemDto,
   TreeNodeDto,
   VaultState,
 } from '../../src/shared/protocol';
@@ -14,6 +15,7 @@ import { ContextMenu, type MenuItem } from './ContextMenu';
 import { NoteTree } from './NoteTree';
 import { RecentlyOpenedList } from './RecentlyOpenedList';
 import { SearchBox } from './SearchBox';
+import { TrashList } from './TrashList';
 import { VaultHeader } from './VaultHeader';
 import { WelcomeView } from './WelcomeView';
 
@@ -43,6 +45,7 @@ export function App({ bridge }: AppProps) {
   );
   const [recent, setRecent] = useState<readonly RecentItemDto[]>([]);
   const [backlinks, setBacklinks] = useState<readonly RecentItemDto[]>([]);
+  const [trash, setTrash] = useState<readonly TrashItemDto[]>([]);
   const [query, setQuery] = useState('');
 
   /*
@@ -77,6 +80,10 @@ export function App({ bridge }: AppProps) {
 
         case 'backlinks':
           setBacklinks(message.items);
+          break;
+
+        case 'trash':
+          setTrash(message.items);
           break;
       }
     });
@@ -180,6 +187,17 @@ export function App({ bridge }: AppProps) {
           filtering={query !== ''}
         />
       </div>
+
+      {/* Below the tree: somewhere you go when something has gone wrong,
+          not something that should push your notes down the panel. */}
+      {query === '' ? (
+        <TrashList
+          items={trash}
+          onRestore={(id) => bridge.post({ type: 'restoreItem', id })}
+          onPurge={(id, name) => bridge.post({ type: 'purgeItem', id, name })}
+          onEmpty={() => bridge.post({ type: 'emptyTrash' })}
+        />
+      ) : null}
 
       {menu === undefined ? null : (
         <ContextMenu

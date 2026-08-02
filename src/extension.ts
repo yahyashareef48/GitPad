@@ -4,6 +4,7 @@ import { LinkIndex } from './core/links/LinkIndex';
 import { OrderService } from './core/ordering/OrderService';
 import { NoteService } from './core/vault/NoteService';
 import { NOTE_EXTENSION } from './core/vault/VaultLayout';
+import { TrashService } from './core/vault/TrashService';
 import { VaultService } from './core/vault/VaultService';
 import { VaultTree } from './core/vault/VaultTree';
 import { OutputChannelLogger } from './platform/OutputChannelLogger';
@@ -48,6 +49,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const order = new OrderService(fs, logger);
   const links = new LinkIndex(fs, logger, new Set([NOTE_EXTENSION]));
+  const trash = new TrashService(fs, clock, logger);
 
   const sidebar = new SidebarViewProvider(
     context.extensionUri,
@@ -57,6 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
     recent,
     order,
     links,
+    trash,
     logger,
   );
 

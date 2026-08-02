@@ -77,6 +77,9 @@ export type SidebarToHost =
    * dedicated settings page (plan 5.4) replaces this in M4.
    */
   | { readonly type: 'openSettings' }
+  | { readonly type: 'restoreItem'; readonly id: string }
+  | { readonly type: 'purgeItem'; readonly id: string; readonly name: string }
+  | { readonly type: 'emptyTrash' }
   /**
    * Drag-and-drop result.
    *
@@ -115,7 +118,16 @@ export type HostToSidebar =
    * Sent on every active-editor change, including an empty list, so the panel
    * cannot show one note's backlinks while another is open.
    */
-  | { readonly type: 'backlinks'; readonly items: readonly RecentItemDto[] };
+  | { readonly type: 'backlinks'; readonly items: readonly RecentItemDto[] }
+  /** Contents of `.trash/`, newest deletion first. */
+  | { readonly type: 'trash'; readonly items: readonly TrashItemDto[] };
+
+export interface TrashItemDto {
+  readonly id: string;
+  readonly name: string;
+  /** ISO 8601. Absent for files not deleted by GitPad. */
+  readonly deletedAt?: string;
+}
 
 export interface RecentItemDto {
   readonly id: string;

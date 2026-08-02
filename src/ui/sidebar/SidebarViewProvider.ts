@@ -7,6 +7,7 @@ import type { OrderService } from '../../core/ordering/OrderService';
 import type { Logger } from '../../core/ports/Logger';
 import type { NoteService } from '../../core/vault/NoteService';
 import type { VaultLayout } from '../../core/vault/VaultLayout';
+import type { TrashService } from '../../core/vault/TrashService';
 import type { VaultTree } from '../../core/vault/VaultTree';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
 import { PadEditorProvider } from '../editor/PadEditorProvider';
@@ -52,6 +53,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     private readonly recent: RecentlyOpened,
     private readonly order: OrderService,
     private readonly links: LinkIndex,
+    private readonly trash: TrashService,
     private readonly logger: Logger,
   ) {
     this.subscriptions.push(
@@ -119,6 +121,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         this.post({ type: 'vaultState', state: this.vault.state });
         this.postRecent();
         this.postBacklinks();
+        void this.postTrash();
         await this.refreshTree();
         break;
 
@@ -164,11 +167,30 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
         break;
 
       case 'trashItem':
-        await this.trash(message.id, message.name);
+        await this.moveToTrash(message.id, message.name);
         break;
 
       case 'moveItem':
         await this.move(message.id, message.parentId, message.index);
+        break;
+
+      case 'restoreItem':
+        await this.withVault(async (layout) => {
+          const entry = (await this.trash.list(layout)).find((item) => item.id === message.id);
+
+          if (entry !== undefined) {
+            await this.trash.restore(layout, entry);
+            await this.refreshTree();
+          }
+        });
+        break;
+
+      case 'purgeItem':
+        await this.purge(message.id, message.name);
+        break;
+
+      case 'emptyTrash':
+        await this.emptyTrash();
         break;
 
       case 'openSettings':
@@ -231,7 +253,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
    * friction guarding an action that is already reversible. The notification
    * is the confirmation, and it carries the undo.
    */
-  private async trash(id: string, name: string): Promise<void> {
+  private async moveToTrash(id: string, name: string): Promise<void> {
     await this.withVault(async (layout) => {
       const trashed = await this.notes.moveToTrash(layout, id);
 
@@ -339,6 +361,77 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     return undefined;
   }
 
+  /**
+   * Permanently deletes one item, after confirming.
+   *
+   * This one DOES prompt, unlike moving a note to the trash. That is
+   * reversible and this is not, and a confirmation is only worth its
+   * friction when the action cannot be taken back.
+   */
+  private async purge(id: string, name: string): Promise<void> {
+    const remove = 'Delete permanently';
+
+    const choice = await vscode.window.showWarningMessage(
+      `Permanently delete “${name}”?`,
+      { modal: true, detail: 'This cannot be undone.' },
+      remove,
+    );
+
+    if (choice !== remove) {
+      return;
+    }
+
+    await this.withVault(async (layout) => {
+      const entry = (await this.trash.list(layout)).find((item) => item.id === id);
+
+      if (entry !== undefined) {
+        await this.trash.purge(entry);
+        await this.refreshTree();
+      }
+    });
+  }
+
+  private async emptyTrash(): Promise<void> {
+    await this.withVault(async (layout) => {
+      const count = (await this.trash.list(layout)).length;
+
+      if (count === 0) {
+        return;
+      }
+
+      const remove = `Delete ${count} item${count === 1 ? '' : 's'}`;
+
+      const choice = await vscode.window.showWarningMessage(
+        'Empty the trash?',
+        { modal: true, detail: 'This cannot be undone.' },
+        remove,
+      );
+
+      if (choice === remove) {
+        await this.trash.empty(layout);
+        await this.refreshTree();
+      }
+    });
+  }
+
+  /** Trash contents follow every vault change, like the tree does. */
+  private async postTrash(): Promise<void> {
+    const layout = this.vault.currentLayout;
+
+    if (layout === undefined) {
+      this.post({ type: 'trash', items: [] });
+      return;
+    }
+
+    const items = (await this.trash.list(layout)).map((entry) => ({
+      id: entry.id,
+      name: entry.name,
+      deletedAt: entry.deletedAt,
+    }));
+
+    this.post({ type: 'trash', items });
+  }
+
   private postRecent(): void {
     const state = this.vault.state;
 
@@ -379,6 +472,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       this.graph = await this.links.build(state.root);
       this.knownPaths = collectPaths(nodes);
       this.postBacklinks();
+      void this.postTrash();
       // Recents are pruned against the fresh scan, so a deleted note stops
       // being offered rather than lingering as a dead entry.
       this.postRecent();

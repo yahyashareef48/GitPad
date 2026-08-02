@@ -20,7 +20,8 @@ export type IconName =
   | 'folder-opened'
   | 'search'
   | 'close'
-  | 'trash';
+  | 'trash'
+  | 'discard';
 
 interface IconProps {
   readonly name: IconName;
