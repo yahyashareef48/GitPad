@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.1] — 2026-08-02
+
+Documentation only. No functional changes.
+
+- Rewrote the README for the Marketplace listing: what GitPad does today, and an explicit list of
+  what it does not do yet — Git sync, wikilinks, image uploads, boards.
+
 ## [0.1.0] — 2026-08-02
 
 First working release. Phase 1: a local notes workspace. Git sync arrives in Phase 2.
