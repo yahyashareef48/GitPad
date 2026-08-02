@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import { LinkIndex } from './core/links/LinkIndex';
+import { LinkRenamer } from './core/links/LinkRenamer';
 import { OrderService } from './core/ordering/OrderService';
 import { SearchIndex } from './core/search/SearchIndex';
 import { NoteService } from './core/vault/NoteService';
@@ -53,6 +54,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const order = new OrderService(fs, logger);
   const links = new LinkIndex(fs, logger, new Set([NOTE_EXTENSION]));
   const trash = new TrashService(fs, clock, logger);
+  const renamer = new LinkRenamer(fs, logger, new Set([NOTE_EXTENSION]));
   const search = new SearchIndex(fs, logger, new Set([NOTE_EXTENSION]));
 
   const sidebar = new SidebarViewProvider(
@@ -64,6 +66,7 @@ export function activate(context: vscode.ExtensionContext): void {
     order,
     links,
     trash,
+    renamer,
     logger,
   );
 
@@ -75,6 +78,7 @@ export function activate(context: vscode.ExtensionContext): void {
     clock,
     notes,
     vault,
+    renamer,
     logger,
   );
 

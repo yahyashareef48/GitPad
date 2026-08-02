@@ -3,6 +3,7 @@ import * as path from 'node:path';
 import * as vscode from 'vscode';
 
 import type { LinkGraph, LinkIndex } from '../../core/links/LinkIndex';
+import type { LinkRenamer } from '../../core/links/LinkRenamer';
 import type { OrderService } from '../../core/ordering/OrderService';
 import type { Logger } from '../../core/ports/Logger';
 import type { NoteService } from '../../core/vault/NoteService';
@@ -12,6 +13,7 @@ import type { VaultTree } from '../../core/vault/VaultTree';
 import type { HostToSidebar, SidebarToHost } from '../../shared/protocol';
 import { PadEditorProvider } from '../editor/PadEditorProvider';
 import type { RecentlyOpened } from '../vault/RecentlyOpened';
+import { findLinkingNotes, offerLinkUpdate } from '../vault/updateLinksOnRename';
 import type { VaultController } from '../vault/VaultController';
 import { renderWebviewHtml } from '../webview/WebviewHost';
 
@@ -54,6 +56,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     private readonly order: OrderService,
     private readonly links: LinkIndex,
     private readonly trash: TrashService,
+    private readonly renamer: LinkRenamer,
     private readonly logger: Logger,
   ) {
     this.subscriptions.push(
@@ -236,7 +239,13 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     }
 
     await this.withVault(async (layout) => {
-      await this.notes.rename(layout, id, title);
+      // Captured BEFORE the rename: afterwards nothing resolves to the old
+      // path, so the affected set would always come back empty.
+      const affected = await findLinkingNotes(this.renamer, layout.root, id);
+      const renamed = await this.notes.rename(layout, id, title);
+
+      await this.refreshTree();
+      await offerLinkUpdate(this.renamer, affected, id, renamed);
       await this.refreshTree();
     });
   }

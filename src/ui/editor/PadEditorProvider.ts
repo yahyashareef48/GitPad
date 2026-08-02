@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 import type { Clock } from '../../core/ports/Clock';
 import { groupByTitle, resolveIn } from '../../core/links/LinkIndex';
+import type { LinkRenamer } from '../../core/links/LinkRenamer';
 import type { NoteService } from '../../core/vault/NoteService';
 import { NOTE_EXTENSION } from '../../core/vault/VaultLayout';
 import { VaultTree } from '../../core/vault/VaultTree';
@@ -18,6 +19,7 @@ import type {
   NoteMetaDto,
 } from '../../shared/protocol';
 import type { VaultController } from '../vault/VaultController';
+import { findLinkingNotes, offerLinkUpdate } from '../vault/updateLinksOnRename';
 import { renderWebviewHtml } from '../webview/WebviewHost';
 import type { AutoSave } from './AutoSave';
 import { PadDocument } from './PadDocument';
@@ -55,6 +57,7 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     private readonly clock: Clock,
     private readonly notes: NoteService,
     private readonly vault: VaultController,
+    private readonly renamer: LinkRenamer,
     private readonly logger: Logger,
   ) {}
 
@@ -270,6 +273,8 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       // queued would be written to a path that no longer exists.
       await this.autoSave.flush(document.uri);
 
+      // Captured BEFORE the rename, for the same reason as in the sidebar.
+      const affected = await findLinkingNotes(this.renamer, layout.root, document.uri.fsPath);
       const renamed = await this.notes.rename(layout, document.uri.fsPath, title);
 
       if (renamed === document.uri.fsPath) {
@@ -294,6 +299,8 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       );
 
       panel.dispose();
+
+      await offerLinkUpdate(this.renamer, affected, document.uri.fsPath, renamed);
     } catch (error) {
       this.logger.error(`Could not rename ${document.uri.fsPath}`, error);
 
