@@ -863,7 +863,9 @@ gating features we depend on**. This has already changed decisions:
 - **BlockNote — rejected.** Core is MIT; the `xl-*` packages carry a separate commercial license.
   Verify terms before touching those if this is ever revisited.
 - **Milkdown, CodeMirror 6, Lexical, ProseMirror, isomorphic-git, React Flow, remark/unified,
-  dnd-kit — all MIT, no paid tiers.**
+  dnd-kit, react-arborist — all MIT, no paid tiers.**
+- **`@vscode/codicons` — CC BY 4.0, not MIT.** Free and permissive, but the only dependency so far
+  that **requires attribution**. Credited in the README; keep that credit if the icons stay.
 
 Rule going forward: check the license and the existence of a "Pro" tier before adding any
 dependency. Record it in `docs/adr/`.

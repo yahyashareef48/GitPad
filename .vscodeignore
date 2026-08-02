@@ -1,8 +1,22 @@
+# Source is not shipped — dist/ is the built artifact (see esbuild.mjs).
+# dist/test is built output too, but it is the test suite, not the extension.
+dist/test/**
+out/**
+.vscode-test.mjs
+.vscode-test/**
+vitest.config.mts
+eslint.config.mjs
 .vscode/**
 .vscode-test/**
 src/**
+webview/**
+test/**
+docs/**
+node_modules/**
 .gitignore
+esbuild.mjs
 tsconfig.json
+CLAUDE.md
 **/*.map
 **/.eslintrc.json
-node_modules/**
+*.vsix

@@ -1,0 +1,290 @@
+/*
+ * Crepe, wearing VS Code's theme.
+ *
+ * Crepe's shipped themes (frame, nord, classic) are a set of --crepe-* custom
+ * properties over its structural CSS. That means theming it is a mapping job,
+ * not a fight with its stylesheet: we import the structure and define the
+ * variables ourselves in terms of --vscode-*.
+ *
+ * Everything therefore follows the user's chosen theme automatically, light,
+ * dark, high-contrast and third-party alike -- and there are no hardcoded
+ * colours anywhere, per plan 5.5.
+ *
+ * It also removes a problem: Crepe's own themes ask for Noto Sans, Noto Serif
+ * and Space Mono, which are web fonts. Those requests would be blocked by our
+ * CSP and would not match the editor anyway.
+ */
+
+.milkdown {
+  /* Surfaces */
+  --crepe-color-background: var(--vscode-editor-background);
+  --crepe-color-on-background: var(--vscode-editor-foreground);
+  /* Menus and popovers use VS Code's menu colours so they read as editor
+     chrome rather than as page content. */
+  --crepe-color-surface: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  --crepe-color-surface-low: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  /*
+   * Crepe uses on-surface and on-surface-variant for menu text, block handles
+   * and toolbar icons. Mapping the "variant" to descriptionForeground made all
+   * of those barely legible, because VS Code intends that colour for secondary
+   * captions, not for controls a user has to aim at. Both now use full
+   * foreground, and dimming is left to opacity where it is actually wanted.
+   */
+  --crepe-color-on-surface: var(--vscode-menu-foreground, var(--vscode-foreground));
+  --crepe-color-on-surface-variant: var(--vscode-foreground);
+  /*
+   * A FOREGROUND colour, despite the name.
+   *
+   * Crepe uses --crepe-color-outline for the toolbar icons, the table
+   * add-row/column nubs and the block handle glyphs -- and separately, via
+   * color-mix at 80% transparency, for borders and dividers. Mapping it to a
+   * border colour therefore made every icon in the editor nearly invisible
+   * while the borders looked fine.
+   *
+   * Pointing it at the foreground fixes all of them at once, and the
+   * color-mix borders become "foreground at 20%", which is a perfectly
+   * ordinary border.
+   */
+  --crepe-color-outline: var(--vscode-foreground);
+
+  /* Accents. Crepe uses "primary" for carets, active handles and emphasis. */
+  --crepe-color-primary: var(--vscode-textLink-foreground);
+  --crepe-color-secondary: var(--vscode-editorWidget-background);
+  --crepe-color-on-secondary: var(--vscode-editor-foreground);
+  --crepe-color-inverse: var(--vscode-editorHoverWidget-background);
+  --crepe-color-on-inverse: var(--vscode-editorHoverWidget-foreground);
+
+  --crepe-color-inline-code: var(--vscode-textPreformat-foreground);
+  --crepe-color-error: var(--vscode-errorForeground);
+  --crepe-color-hover: var(--vscode-list-hoverBackground);
+  --crepe-color-selected: var(--vscode-editor-selectionBackground);
+  --crepe-color-inline-area: var(--vscode-editor-inactiveSelectionBackground);
+
+  /*
+   * Fonts come from the user's VS Code settings.
+   *
+   * Prose gets the UI font rather than the editor's monospace font: a note is
+   * writing, not code. Code blocks and inline code still get the editor font.
+   */
+  --crepe-font-title: var(--vscode-font-family);
+  --crepe-font-default: var(--vscode-font-family);
+  --crepe-font-code: var(--vscode-editor-font-family);
+
+  --crepe-shadow-1: 0 1px 3px 1px var(--vscode-widget-shadow, rgb(0 0 0 / 15%));
+  --crepe-shadow-2: 0 2px 6px 2px var(--vscode-widget-shadow, rgb(0 0 0 / 15%));
+}
+
+/* ---- Layout ---- */
+
+.milkdown {
+  height: 100%;
+  background: transparent;
+}
+
+.milkdown .ProseMirror {
+  /*
+   * Generous side padding: prose is uncomfortable flush against a window
+   * edge, unlike code, which has a gutter doing the same job.
+   *
+   * The large bottom padding is deliberate -- it lets the last line of a long
+   * note sit mid-screen rather than against the bottom edge. Notion, Obsidian
+   * and Word all do the same.
+   */
+  padding: 8px 24px 40vh 68px;
+  font-size: var(--gitpad-text-size);
+  line-height: 1.7;
+  outline: none;
+}
+
+/* ---- Text size ---- */
+
+/*
+ * Crepe's own sizes are tuned for a full-width web page and read as oversized
+ * inside an editor tab, especially headings. These are scaled to sit closer to
+ * VS Code's own UI, and the base is user-adjustable via gitpad.editor.textSize.
+ */
+:root {
+  --gitpad-text-size: var(--vscode-font-size);
+}
+
+:root[data-gitpad-size='small'] {
+  --gitpad-text-size: calc(var(--vscode-font-size) * 0.95);
+}
+
+:root[data-gitpad-size='large'] {
+  --gitpad-text-size: calc(var(--vscode-font-size) * 1.2);
+}
+
+.milkdown .ProseMirror h1 {
+  font-size: 1.8em;
+}
+
+.milkdown .ProseMirror h2 {
+  font-size: 1.5em;
+}
+
+.milkdown .ProseMirror h3 {
+  font-size: 1.25em;
+}
+
+.milkdown .ProseMirror h4 {
+  font-size: 1.1em;
+}
+
+.milkdown .ProseMirror h5,
+.milkdown .ProseMirror h6 {
+  font-size: 1em;
+}
+
+/* ---- Uploads are out of scope (plan 2.5) ---- */
+
+/*
+ * The "Upload file" control is hidden rather than left to fail: the handlers
+ * reject, so showing it advertises a feature that only produces an error.
+ * Pasting a link still works, and the placeholder text is reworded through
+ * Crepe's config so the remaining prompt reads as a whole sentence.
+ */
+.milkdown .milkdown-image-block .image-edit .link-importer .placeholder .uploader,
+.milkdown .milkdown-image-block > .image-edit .link-importer .placeholder .uploader,
+.milkdown .milkdown-image-inline .empty-image-inline .link-importer .placeholder .uploader,
+.milkdown .milkdown-image-inline > .empty-image-inline .link-importer .placeholder .uploader {
+  display: none;
+}
+
+/* ---- Wikilinks ---- */
+
+/*
+ * Drawn as a note chip, not as raw syntax.
+ *
+ * Styling is decoration only, so the file still contains ordinary `[[Note]]`
+ * markdown that Obsidian or GitHub can read. The brackets are merely hidden
+ * while the caret is elsewhere, and reappear when you edit the link -- the
+ * same trick Obsidian's live preview uses.
+ */
+.gitpad-wikilink {
+  padding: 1px 4px 1px 20px;
+  border-radius: 3px;
+  color: var(--vscode-textLink-foreground);
+  background: var(--vscode-textCodeBlock-background, var(--vscode-editorWidget-background));
+  cursor: pointer;
+
+  /* GitPad's mark, inlined as a data URI so it needs no localResourceRoots
+     entry and cannot fail to load. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='48 48 156 156'%3E%3Cg fill='none' stroke='%23F05133' stroke-width='20' stroke-linecap='round'%3E%3Cpath d='M150,182 A62,62 0 1 1 184,112'/%3E%3Cpath d='M184,112 V150'/%3E%3C/g%3E%3Ccircle cx='184' cy='160' r='16' fill='%23F05133'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: 4px center;
+  background-size: 12px 12px;
+}
+
+.gitpad-wikilink:hover {
+  color: var(--vscode-textLink-activeForeground);
+  text-decoration: underline;
+}
+
+/*
+ * The `[[` and `]]` are never shown -- not on hover, not on click, not while
+ * the caret is inside the link.
+ *
+ * Collapsed with font-size rather than `display: none`: ProseMirror maps
+ * document positions onto DOM text, and a range with no box breaks caret
+ * placement and selection across it. This keeps the characters present and
+ * addressable by backspace while taking no visible space.
+ */
+.gitpad-wikilink__syntax {
+  font-size: 0;
+  opacity: 0;
+}
+
+/* ---- Long words must wrap ---- */
+
+/*
+ * A pasted URL or an unbroken run of characters would otherwise force the
+ * whole document into horizontal scrolling.
+ */
+.milkdown .ProseMirror {
+  overflow-wrap: break-word;
+}
+
+/* ---- Popovers ---- */
+
+/*
+ * Crepe already scrolls `.menu-groups` at a fixed 420px. Capping the menu
+ * itself as well produced two nested scrollbars, so the cap belongs here --
+ * made viewport-aware so a menu opened in a short pane still fits.
+ */
+.milkdown .milkdown-slash-menu .menu-groups {
+  max-height: min(420px, 50vh);
+}
+
+.milkdown .milkdown-slash-menu .menu-groups .menu-group li.hover,
+.milkdown .milkdown-slash-menu .menu-groups .menu-group li:hover {
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+}
+
+/* ---- Block handle ---- */
+
+/*
+ * Crepe sizes the add and drag controls at 32px each -- generous for a web
+ * page, an unreasonable bite out of a narrow editor pane.
+ *
+ * They are placed by floating-ui at `left-start` with a 10px offset, so the
+ * pair needs (2 x 22) + 2 gap + 10 = 56px of clearance to the left of the
+ * text. The editor's left padding is set from that number rather than
+ * guessed, or the scroll container clips the leading control.
+ */
+.milkdown .milkdown-block-handle .operation-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  /* Padding removed and centring done with flex: Crepe's 4px padding plus a
+     fixed size left the glyphs sitting off-centre in their buttons. */
+  padding: 0;
+}
+
+.milkdown .milkdown-block-handle .operation-item svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+}
+
+.milkdown .milkdown-block-handle .operation-item:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+}
+
+/* ---- Reconciling with VS Code chrome ---- */
+
+.milkdown .ProseMirror a {
+  color: var(--vscode-textLink-foreground);
+}
+
+.milkdown .ProseMirror a:hover {
+  color: var(--vscode-textLink-activeForeground);
+}
+
+.milkdown .ProseMirror blockquote {
+  border-left: 3px solid var(--vscode-textBlockQuote-border, var(--vscode-widget-border));
+  background: var(--vscode-textBlockQuote-background, transparent);
+}
+
+.milkdown .ProseMirror code {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.95em;
+}
+
+.milkdown .ProseMirror hr {
+  border-color: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+}
+
+/* Codicons are the icon language everywhere else in GitPad; Crepe's own SVGs
+   sit inside its widgets and are left alone rather than half-replaced. */
+.milkdown .ProseMirror table {
+  border-color: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+}
+
+.milkdown .ProseMirror th,
+.milkdown .ProseMirror td {
+  border-color: var(--vscode-widget-border, var(--vscode-editorWidget-border));
+}

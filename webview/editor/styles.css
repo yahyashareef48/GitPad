@@ -1,0 +1,172 @@
+/*
+ * Every value resolves from a VS Code theme variable -- no hardcoded colours.
+ * The editor fills a normal editor tab, so it sits directly against the rest
+ * of the editor chrome and any mismatch is visible by comparison.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--vscode-editor-foreground);
+  background: var(--vscode-editor-background);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+}
+
+.loading {
+  padding: 24px;
+  opacity: 0.7;
+}
+
+/*
+ * The page scrolls as one, so the title header moves with the text rather
+ * than staying pinned. A note is a document, not an application pane, and a
+ * fixed header would eat vertical space that the writing needs.
+ */
+.page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: auto;
+}
+
+.crepe {
+  flex: 1;
+}
+
+/* ---- Note header ---- */
+
+.note-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  /* Left padding matches the editor body's, so the title lines up with the
+     text beneath it rather than sitting proud of it. */
+  padding: 24px 24px 4px 68px;
+}
+
+.note-header__icon {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+.note-header__text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+/*
+ * An input styled as a heading, not a heading with contenteditable.
+ *
+ * It gets keyboard behaviour, placeholder support and screen-reader semantics
+ * for free, none of which a contenteditable div has without being rebuilt.
+ */
+.note-header__title {
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: calc(var(--gitpad-text-size, 13px) * 2);
+  font-weight: 600;
+  line-height: 1.3;
+  outline: none;
+}
+
+.note-header__title::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+  opacity: 0.6;
+}
+
+.note-header__meta {
+  display: flex;
+  gap: 6px;
+  margin: 4px 0 0;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+}
+
+.note-header__dot {
+  opacity: 0.6;
+}
+
+/* ---- `[[` note picker ---- */
+
+.suggest {
+  position: fixed;
+  z-index: 20;
+  width: 240px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, transparent));
+  border-radius: 4px;
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgb(0 0 0 / 36%));
+}
+
+.suggest__item {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  height: 24px;
+  padding: 0 10px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+/*
+ * Highlight follows the keyboard, not the mouse alone, so arrow keys and
+ * hover agree about what Enter would insert.
+ */
+.suggest__item--selected {
+  color: var(--vscode-menu-selectionForeground, var(--vscode-list-activeSelectionForeground));
+  background: var(--vscode-menu-selectionBackground, var(--vscode-list-activeSelectionBackground));
+}
+
+.suggest__title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/*
+ * Shown only on rows whose title is ambiguous, and pushed right so the titles
+ * still line up. A folder on every row would be noise; a folder on the
+ * duplicates is what makes them distinguishable.
+ */
+.suggest__folder {
+  overflow: hidden;
+  flex: 0 1 auto;
+  margin-left: auto;
+  padding-left: 8px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.suggest__empty {
+  padding: 6px 10px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.9em;
+}

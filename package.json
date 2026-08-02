@@ -2,7 +2,7 @@
   "name": "gitpad",
   "displayName": "GitPad",
   "description": "A Git-powered workspace for notes, to-do lists, and flowcharts — all inside VS Code.",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "publisher": "YahyaShareef",
   "license": "MIT",
   "engines": {
@@ -27,19 +27,164 @@
   },
   "homepage": "https://github.com/yahyashareef48/GitPad#readme",
   "icon": "icon.png",
-  "activationEvents": [],
-  "main": "./out/extension.js",
-  "contributes": {},
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "gitpad",
+          "title": "GitPad",
+          "icon": "media/activity-bar.svg"
+        }
+      ]
+    },
+    "views": {
+      "gitpad": [
+        {
+          "id": "gitpad.sidebar",
+          "name": "Notes",
+          "type": "webview"
+        }
+      ]
+    },
+    "languages": [
+      {
+        "id": "gitpad-note",
+        "aliases": [
+          "GitPad Note"
+        ],
+        "extensions": [
+          ".pad"
+        ],
+        "icon": {
+          "light": "media/pad-file.svg",
+          "dark": "media/pad-file.svg"
+        }
+      }
+    ],
+    "customEditors": [
+      {
+        "viewType": "gitpad.editor",
+        "displayName": "GitPad",
+        "selector": [
+          {
+            "filenamePattern": "*.pad"
+          }
+        ],
+        "priority": "default"
+      }
+    ],
+    "commands": [
+      {
+        "command": "gitpad.createVault",
+        "title": "Create Vault",
+        "category": "GitPad"
+      },
+      {
+        "command": "gitpad.openVault",
+        "title": "Open Vault",
+        "category": "GitPad"
+      },
+      {
+        "command": "gitpad.searchNotes",
+        "title": "Search Notes",
+        "category": "GitPad"
+      },
+      {
+        "command": "gitpad.openSettings",
+        "title": "Settings",
+        "category": "GitPad"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "gitpad.searchNotes",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f"
+      }
+    ],
+    "configuration": {
+      "title": "GitPad",
+      "properties": {
+        "gitpad.vault.path": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Absolute path to your GitPad vault — the folder your notes live in. Keep this separate from any code project: GitPad manages everything inside it."
+        },
+        "gitpad.editor.textSize": {
+          "type": "string",
+          "enum": [
+            "small",
+            "medium",
+            "large"
+          ],
+          "enumDescriptions": [
+            "Slightly smaller than the interface font.",
+            "Matches the interface font.",
+            "Comfortably larger, for long writing sessions."
+          ],
+          "default": "medium",
+          "markdownDescription": "Text size in the note editor. Headings scale with it."
+        },
+        "gitpad.editor.autoSave": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Save notes automatically shortly after you stop typing.\n\nVS Code's own `#files.autoSave#` setting does not apply to GitPad notes, so this is the setting that controls them."
+        },
+        "gitpad.editor.autoSaveDelayMs": {
+          "type": "number",
+          "default": 800,
+          "minimum": 200,
+          "markdownDescription": "How long to wait after you stop typing before saving, in milliseconds."
+        },
+        "gitpad.sidebar.recentlyOpenedCount": {
+          "type": "number",
+          "default": 5,
+          "minimum": 0,
+          "markdownDescription": "How many notes to list under **Recently opened**. Set to `0` to hide the section. This list is stored per machine and is never synced."
+        }
+      }
+    }
+  },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
+    "vscode:prepublish": "npm run build",
+    "build": "node esbuild.mjs --production",
+    "compile": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc -p ./ && tsc -p ./webview && tsc -p ./test/integration && tsc -p ./test/editor",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:integration": "npm run compile && vscode-test",
     "package": "vsce package"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^20.x",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@types/vscode": "^1.90.0",
+    "@vscode/test-cli": "^0.0.12",
+    "@vscode/test-electron": "^2.5.2",
+    "@vscode/vsce": "^3.x",
+    "esbuild": "^0.28.1",
+    "eslint": "^10.8.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "jsdom": "^29.1.1",
     "typescript": "^5.x",
-    "@vscode/vsce": "^3.x"
+    "typescript-eslint": "^8.65.0",
+    "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "@milkdown/crepe": "^7.21.3",
+    "@milkdown/kit": "^7.21.3",
+    "@vscode/codicons": "^0.0.46-24",
+    "react": "^19.2.8",
+    "react-arborist": "^3.16.0",
+    "react-dom": "^19.2.8"
   }
 }

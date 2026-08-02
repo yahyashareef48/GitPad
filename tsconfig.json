@@ -1,12 +1,27 @@
 {
+  // Typechecking only — esbuild does the emitting (see esbuild.mjs).
+  // This config covers the extension host side: Node APIs, no DOM.
   "compilerOptions": {
-    "module": "commonjs",
     "target": "ES2022",
-    "outDir": "out",
     "lib": ["ES2022"],
-    "sourceMap": true,
-    "rootDir": "src",
-    "strict": true
+    // Node16 rather than commonjs/node so tsc understands the `exports` maps
+    // that modern devDependencies (vitest) publish their types behind.
+    // esbuild is unaffected -- it reads its own config, not this one.
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    // Explicitly Node-only. Without this, DOM globals leak in from other
+    // @types packages and code that could never run in the extension host
+    // still typechecks.
+    "types": ["node"],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "sourceMap": true
   },
-  "exclude": ["node_modules", ".vscode-test"]
+  // Tests are typechecked too: an assertion that does not compile is not a test.
+  "include": ["src", "test/unit"]
 }

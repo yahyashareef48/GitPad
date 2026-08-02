@@ -1,0 +1,11 @@
+<!-- Tab icon for .pad files.
+     Unlike media/activity-bar.svg this carries its own colour: VS Code does
+     not tint editor tab icons, so an icon relying on currentColor would render
+     in whatever the surrounding text colour happens to be. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="48 48 156 156" role="img" aria-label="GitPad note">
+  <g fill="none" stroke="#F05133" stroke-width="20" stroke-linecap="round">
+    <path d="M150,182 A62,62 0 1 1 184,112"/>
+    <path d="M184,112 V150"/>
+  </g>
+  <circle cx="184" cy="160" r="16" fill="#F05133"/>
+</svg>

@@ -1,0 +1,419 @@
+/*
+ * Every value here resolves from a VS Code theme variable.
+ *
+ * There are no hardcoded colours anywhere in GitPad's webviews: the sidebar
+ * sits directly beside native VS Code chrome, so a mismatch in hover colour,
+ * focus ring or font is immediately visible by comparison. Inheriting also
+ * means light, dark, high-contrast and unknown third-party themes all work
+ * without us shipping a stylesheet per theme.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  color: var(--vscode-sideBar-foreground, var(--vscode-foreground));
+  background: transparent;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  line-height: 1.5;
+}
+
+/* ---- Welcome screen ---- */
+
+.welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 16px;
+}
+
+.welcome__title {
+  margin: 0;
+  font-size: var(--vscode-font-size);
+  font-weight: 600;
+}
+
+.welcome__body {
+  margin: 0;
+  opacity: 0.8;
+}
+
+.welcome__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.button {
+  padding: 6px 12px;
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  font-family: inherit;
+  font-size: inherit;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.button--secondary {
+  color: var(--vscode-button-secondaryForeground);
+  background: var(--vscode-button-secondaryBackground);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background: var(--vscode-button-secondaryHoverBackground);
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Matches VS Code's own focus treatment rather than the browser default. */
+.button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 0.9em;
+  opacity: 0.6;
+}
+
+.placeholder {
+  padding: 16px;
+  opacity: 0.7;
+}
+
+/* ---- Layout ---- */
+
+/*
+ * Sized from the viewport rather than a chain of height:100% rules. The chain
+ * silently collapses to zero if any ancestor forgets it, and a zero-height
+ * virtualised tree renders as an empty panel with no error.
+ */
+.shell {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.shell__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.vault-header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 4px 4px 8px;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
+}
+
+.vault-header__name {
+  flex: 1;
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.icon-button {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+  background: transparent;
+  opacity: 0.85;
+  cursor: pointer;
+}
+
+.icon-button:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  opacity: 1;
+}
+
+.icon-button:focus-visible {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+/* ---- Search ---- */
+
+.search {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 8px;
+  padding: 0 6px;
+  border: 1px solid var(--vscode-input-border, transparent);
+  border-radius: 2px;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+}
+
+.search:focus-within {
+  outline: 1px solid var(--vscode-focusBorder);
+}
+
+.search__icon {
+  display: flex;
+  opacity: 0.7;
+}
+
+.search__input {
+  flex: 1;
+  min-width: 0;
+  padding: 3px 0;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  outline: none;
+}
+
+.search__input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+}
+
+.search__clear {
+  display: flex;
+  padding: 0;
+  border: none;
+  color: inherit;
+  background: transparent;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.search__clear:hover {
+  opacity: 1;
+}
+
+/* ---- Collapsible sections ---- */
+
+.section {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  /* Separates the section from the tree below it, which is otherwise a
+     continuous run of identical rows with no indication where one list ends
+     and the other begins. */
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--vscode-panel-border, var(--vscode-widget-border, transparent));
+}
+
+.section__header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 8px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.85em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+  cursor: pointer;
+}
+
+.section__header:hover {
+  opacity: 1;
+}
+
+/* A row outside the virtualised tree, so it lays itself out. */
+.row--flat {
+  width: 100%;
+  height: 22px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+}
+
+/* ---- Context menu ---- */
+
+.menu {
+  position: fixed;
+  z-index: 10;
+  min-width: 160px;
+  padding: 4px 0;
+  border: 1px solid var(--vscode-menu-border, var(--vscode-widget-border, transparent));
+  border-radius: 4px;
+  color: var(--vscode-menu-foreground, var(--vscode-foreground));
+  background: var(--vscode-menu-background, var(--vscode-editorWidget-background));
+  box-shadow: 0 2px 8px var(--vscode-widget-shadow, rgb(0 0 0 / 36%));
+}
+
+.menu__item {
+  display: block;
+  width: 100%;
+  padding: 4px 12px;
+  border: none;
+  color: inherit;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menu__item:hover {
+  color: var(--vscode-menu-selectionForeground);
+  background: var(--vscode-menu-selectionBackground);
+}
+
+.menu__item--separated {
+  margin-top: 4px;
+  border-top: 1px solid var(--vscode-menu-separatorBackground, var(--vscode-widget-border));
+  padding-top: 8px;
+}
+
+/* ---- Errors ---- */
+
+.error {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+}
+
+.error__title {
+  margin: 0;
+  font-weight: 600;
+}
+
+.error__detail {
+  margin: 0;
+  color: var(--vscode-errorForeground);
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+/* ---- Notes tree ---- */
+
+/* react-arborist virtualises rows, so it needs measured pixel dimensions
+   rather than filling its parent through CSS. This element is what gets
+   measured. */
+.tree {
+  height: 100%;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 8px;
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+
+.row:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.row--selected {
+  color: var(--vscode-list-activeSelectionForeground);
+  background: var(--vscode-list-activeSelectionBackground);
+}
+
+.row__twisty {
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.8;
+}
+
+.row__icon {
+  display: flex;
+  flex: 0 0 16px;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-icon-foreground, var(--vscode-foreground));
+}
+
+/* Codicons default to 16px; the twisty reads better a shade smaller. */
+.row__twisty .codicon {
+  font-size: 14px;
+}
+
+.row__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- Trash ---- */
+
+.trash-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 4px 0 8px;
+}
+
+/*
+ * Row actions appear on hover only. Two buttons on every row permanently
+ * would make the trash the busiest-looking part of the sidebar, which is the
+ * opposite of what it deserves.
+ */
+.trash-row__action {
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+}
+
+.trash-row:hover .trash-row__action,
+.trash-row__action:focus-visible {
+  opacity: 0.85;
+}
+
+.section__action {
+  margin-left: auto;
+  padding: 0 6px;
+  color: var(--vscode-textLink-foreground);
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.section__action:hover {
+  text-decoration: underline;
+}
+
+/* Where a trashed item will be restored to. Hidden on root items, which have
+   no folder to name. */
+.trash-row__folder {
+  overflow: hidden;
+  flex: 0 1 auto;
+  padding-left: 6px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

@@ -1,0 +1,24 @@
+{
+  // Typechecking only — esbuild does the emitting (see esbuild.mjs).
+  // This config covers the webview side: DOM APIs, no Node.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    // Deliberately empty: pulling in @types/node here would let webview code
+    // reference Node APIs that do not exist in the iframe sandbox.
+    "types": [],
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "sourceMap": true
+  },
+  // src/shared is the one place both sides are allowed to meet.
+  "include": [".", "../src/shared"]
+}
