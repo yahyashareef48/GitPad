@@ -87,6 +87,18 @@
         "command": "gitpad.openVault",
         "title": "Open Vault",
         "category": "GitPad"
+      },
+      {
+        "command": "gitpad.searchNotes",
+        "title": "Search Notes",
+        "category": "GitPad"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "gitpad.searchNotes",
+        "key": "ctrl+alt+f",
+        "mac": "cmd+alt+f"
       }
     ],
     "configuration": {

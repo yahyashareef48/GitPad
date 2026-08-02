@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 
 import { LinkIndex } from './core/links/LinkIndex';
 import { OrderService } from './core/ordering/OrderService';
+import { SearchIndex } from './core/search/SearchIndex';
 import { NoteService } from './core/vault/NoteService';
 import { NOTE_EXTENSION } from './core/vault/VaultLayout';
 import { TrashService } from './core/vault/TrashService';
@@ -12,6 +13,7 @@ import { SystemClock } from './platform/SystemClock';
 import { VsCodeFileSystem } from './platform/VsCodeFileSystem';
 import { AutoSave } from './ui/editor/AutoSave';
 import { PadEditorProvider } from './ui/editor/PadEditorProvider';
+import { searchNotes } from './ui/search/searchNotes';
 import { SidebarViewProvider } from './ui/sidebar/SidebarViewProvider';
 import { RecentlyOpened } from './ui/vault/RecentlyOpened';
 import { VaultController } from './ui/vault/VaultController';
@@ -50,6 +52,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const order = new OrderService(fs, logger);
   const links = new LinkIndex(fs, logger, new Set([NOTE_EXTENSION]));
   const trash = new TrashService(fs, clock, logger);
+  const search = new SearchIndex(fs, logger, new Set([NOTE_EXTENSION]));
 
   const sidebar = new SidebarViewProvider(
     context.extensionUri,
@@ -90,6 +93,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand('gitpad.createVault', () => vault.chooseVault('create')),
     vscode.commands.registerCommand('gitpad.openVault', () => vault.chooseVault('open')),
+    vscode.commands.registerCommand('gitpad.searchNotes', () => searchNotes(vault, search, logger)),
   );
 
   // Not awaited: activation should not block on disk. The sidebar renders its
