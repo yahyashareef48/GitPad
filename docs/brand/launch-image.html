@@ -56,7 +56,18 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: calc(34px * var(--s));
+        gap: calc(26px * var(--s));
+      }
+
+      /* Mark and wordmark are one unit and sit tight together. The tagline is a
+         separate thought, so it gets the wider gap above. Spacing the three
+         evenly makes the wordmark look like it belongs to the tagline rather
+         than to the mark. */
+      .lockup {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(18px * var(--s));
       }
 
       /* Faint warm glow behind the mark. Without it the card is a flat dark
@@ -73,14 +84,14 @@
       }
 
       .mark {
-        width: calc(152px * var(--s));
-        height: calc(152px * var(--s));
+        width: calc(124px * var(--s));
+        height: calc(124px * var(--s));
         color: var(--accent);
       }
 
       .wordmark {
         margin: 0;
-        font-size: calc(92px * var(--s));
+        font-size: calc(80px * var(--s));
         font-weight: 600;
         letter-spacing: calc(-2px * var(--s));
         color: var(--fg);
@@ -122,16 +133,23 @@
   <body>
     <div class="card">
       <!-- Same paths as icon.svg, inlined so the file is self-contained and
-           captures cleanly with nothing left to load. -->
-      <svg class="mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
-        <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
-          <path d="M150,182 A62,62 0 1 1 184,112" />
-          <path d="M184,112 V150" />
-        </g>
-        <circle cx="184" cy="160" r="16" fill="currentColor" />
-      </svg>
+           captures cleanly with nothing left to load.
 
-      <h1 class="wordmark">GitPad</h1>
+           The viewBox is tightened to the artwork's real bounds. icon.svg keeps
+           the 0 0 256 256 box because an app icon needs that breathing room
+           inside its tile, but here the empty margin becomes a visible gap
+           between the mark and the wordmark. -->
+      <div class="lockup">
+        <svg class="mark" viewBox="50 50 156 156" fill="none" aria-hidden="true">
+          <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+            <path d="M150,182 A62,62 0 1 1 184,112" />
+            <path d="M184,112 V150" />
+          </g>
+          <circle cx="184" cy="160" r="16" fill="currentColor" />
+        </svg>
+
+        <h1 class="wordmark">GitPad</h1>
+      </div>
 
       <p class="tagline">Notes, <strong>next to your code</strong>.</p>
 
