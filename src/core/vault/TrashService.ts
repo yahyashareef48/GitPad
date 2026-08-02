@@ -7,29 +7,37 @@ import type { Logger } from '../ports/Logger';
 import type { VaultLayout } from './VaultLayout';
 
 /*
- * Reading and emptying `.trash/`.
+ * Reading, restoring and emptying `.trash/`.
  *
- * Deleting into the trash lives in NoteService, next to the other file
- * operations. Everything you do to something already IN the trash lives here,
- * because it needs to understand the timestamped naming that deletion applies.
+ * The trash MIRRORS the vault's folder structure: a note deleted from
+ * `Work/Q1/` lands in `.trash/Work/Q1/`. That is what lets restore put it back
+ * where it came from, and it does so without any index -- the path is the
+ * record, so a file moved by hand, or by git during a merge, cannot leave a
+ * stale entry pointing nowhere.
+ *
+ * Deleting INTO the trash lives in NoteService, beside the other file
+ * operations. Everything done to something already in the trash lives here,
+ * because it needs to understand the mirrored layout and the timestamped
+ * naming.
  */
 
 export interface TrashEntry {
   /** Absolute path inside `.trash/`. */
   readonly id: string;
-  /** The note's name as it was before deletion. */
+  /** The item's name as it was before deletion. */
   readonly name: string;
-  /** When it was deleted, from the timestamp in the filename. */
+  /**
+   * Vault-relative folder it will be restored to. Empty string for the root.
+   *
+   * Shown in the UI so "restore" is never a surprise.
+   */
+  readonly originalFolder: string;
+  readonly kind: 'document' | 'folder';
+  /** When it was deleted, from the timestamp in the name. */
   readonly deletedAt: string | undefined;
 }
 
-/**
- * Matches the suffix `moveToTrash` appends: ` (2026-08-02T01-23-45-678Z)`.
- *
- * Parsed rather than stored separately so the trash needs no index of its own
- * -- the filename carries everything, and a file dragged out of the folder by
- * hand cannot desynchronise anything.
- */
+/** Matches the suffix `moveToTrash` appends: ` (2026-08-02T01-23-45-678Z)`. */
 const TRASH_SUFFIX = /^(.*) \((\d{4}-\d{2}-\d{2}T[\d-]+Z)\)$/;
 
 export class TrashService {
@@ -40,46 +48,86 @@ export class TrashService {
   ) {}
 
   public async list(layout: VaultLayout): Promise<readonly TrashEntry[]> {
-    const entries = await this.fs.readDirectory(layout.trashDir).catch(() => []);
+    const entries = await this.collect(layout, layout.trashDir);
 
-    return entries
-      .map((entry) => {
-        const stem = path.parse(entry.name).name;
-        const match = TRASH_SUFFIX.exec(stem);
-
-        return {
-          id: path.join(layout.trashDir, entry.name),
-          // A file put here by hand has no timestamp; showing its raw name
-          // beats hiding it or refusing to list the folder.
-          name: match?.[1] ?? stem,
-          deletedAt: match?.[2],
-        };
-      })
-      .sort((left, right) => (right.deletedAt ?? '').localeCompare(left.deletedAt ?? ''));
+    return [...entries].sort((left, right) =>
+      (right.deletedAt ?? '').localeCompare(left.deletedAt ?? ''),
+    );
   }
 
   /**
-   * Puts an item back where it came from, under its original name.
+   * Walks the mirrored structure.
    *
-   * The original folder is not recorded, so everything restores to the vault
-   * root. Recording it would mean a sidecar index that can disagree with the
-   * folder's actual contents -- and moving a restored note is one drag, while
-   * a wrong index is a support question.
+   * A directory whose name carries a timestamp is a DELETED FOLDER and is
+   * listed as one entry -- its contents went with it and are restored with it.
+   * A directory without one is only mirroring the vault's shape, so it is
+   * descended into and never listed.
+   */
+  private async collect(layout: VaultLayout, folder: string): Promise<readonly TrashEntry[]> {
+    const entries = await this.fs.readDirectory(folder).catch(() => []);
+    const found: TrashEntry[] = [];
+
+    for (const entry of entries) {
+      const full = path.join(folder, entry.name);
+      const stem = entry.kind === 'directory' ? entry.name : path.parse(entry.name).name;
+      const match = TRASH_SUFFIX.exec(stem);
+
+      if (entry.kind === 'directory' && match === null) {
+        found.push(...(await this.collect(layout, full)));
+        continue;
+      }
+
+      found.push({
+        id: full,
+        // A file put here by hand has no timestamp; showing its raw name beats
+        // hiding it or refusing to list the folder at all.
+        name: match?.[1] ?? stem,
+        originalFolder: toOriginalFolder(layout, folder),
+        kind: entry.kind === 'directory' ? 'folder' : 'document',
+        deletedAt: match?.[2],
+      });
+    }
+
+    return found;
+  }
+
+  /**
+   * Puts an item back where it came from.
+   *
+   * The original folder is recreated if it has since been deleted -- otherwise
+   * restoring a note whose folder is also in the trash would fail, which is
+   * exactly the case where someone most wants it back.
+   *
+   * A name taken since the deletion is uniquified rather than overwritten: the
+   * note occupying it now is someone's work too.
    */
   public async restore(layout: VaultLayout, entry: TrashEntry): Promise<string> {
-    const extension = path.extname(entry.id);
-    const taken = await this.takenNames(layout.root);
-    const target = path.join(layout.root, `${uniquifyStem(entry.name, taken)}${extension}`);
+    const destinationFolder =
+      entry.originalFolder === ''
+        ? layout.root
+        : path.join(layout.root, entry.originalFolder);
+
+    await this.fs.createDirectory(destinationFolder);
+
+    const extension = entry.kind === 'folder' ? '' : path.extname(entry.id);
+    const taken = await this.takenNames(destinationFolder);
+    const target = path.join(destinationFolder, `${uniquifyStem(entry.name, taken)}${extension}`);
+
+    this.assertInside(layout, target);
 
     await this.fs.rename(entry.id, target);
+    await this.pruneEmptyMirrors(layout, path.dirname(entry.id));
+
     this.logger.info(`Restored ${entry.id} to ${target}`);
 
     return target;
   }
 
-  /** Deletes one item permanently. */
-  public async purge(entry: TrashEntry): Promise<void> {
+  /** Deletes one item permanently, including a folder's contents. */
+  public async purge(layout: VaultLayout, entry: TrashEntry): Promise<void> {
     await this.fs.delete(entry.id, { recursive: true });
+    await this.pruneEmptyMirrors(layout, path.dirname(entry.id));
+
     this.logger.info(`Purged ${entry.id}`);
   }
 
@@ -87,7 +135,7 @@ export class TrashService {
     const entries = await this.list(layout);
 
     for (const entry of entries) {
-      await this.purge(entry);
+      await this.purge(layout, entry);
     }
 
     return entries.length;
@@ -96,9 +144,9 @@ export class TrashService {
   /**
    * Removes items deleted longer ago than `retentionDays`.
    *
-   * Items with no parseable timestamp are left alone: they were not put here
-   * by GitPad, and deleting someone's file because we cannot read its name
-   * would be indefensible.
+   * Items with no parseable timestamp are left alone: GitPad did not put them
+   * there, and deleting someone's file because we cannot read its name would
+   * be indefensible.
    */
   public async prune(layout: VaultLayout, retentionDays: number): Promise<number> {
     if (retentionDays <= 0) {
@@ -112,7 +160,7 @@ export class TrashService {
       const deletedAt = parseStamp(entry.deletedAt);
 
       if (deletedAt !== undefined && deletedAt < cutoff) {
-        await this.purge(entry);
+        await this.purge(layout, entry);
         removed += 1;
       }
     }
@@ -120,11 +168,47 @@ export class TrashService {
     return removed;
   }
 
+  /**
+   * Removes mirror folders left empty by a restore or purge.
+   *
+   * Without this the trash slowly fills with the skeleton of every folder
+   * anything was ever deleted from, which looks like leftover rubbish and,
+   * once sync exists, is committed as such.
+   */
+  private async pruneEmptyMirrors(layout: VaultLayout, folder: string): Promise<void> {
+    let current = folder;
+
+    while (current !== layout.trashDir && current.startsWith(layout.trashDir)) {
+      const entries = await this.fs.readDirectory(current).catch(() => []);
+
+      if (entries.length > 0) {
+        return;
+      }
+
+      await this.fs.delete(current, { recursive: true }).catch(() => undefined);
+      current = path.dirname(current);
+    }
+  }
+
   private async takenNames(folder: string): Promise<Set<string>> {
     const entries = await this.fs.readDirectory(folder).catch(() => []);
 
     return new Set(entries.map((entry) => path.parse(entry.name).name.toLowerCase()));
   }
+
+  /** A trash path is derived, not user input, but restoring writes into the vault. */
+  private assertInside(layout: VaultLayout, target: string): void {
+    if (!layout.contains(target)) {
+      throw new Error(`Refusing to restore outside the vault: ${target}`);
+    }
+  }
+}
+
+/** The vault-relative folder a trash location mirrors. */
+function toOriginalFolder(layout: VaultLayout, trashFolder: string): string {
+  const relative = path.relative(layout.trashDir, trashFolder);
+
+  return relative === '' || relative === '.' ? '' : relative;
 }
 
 /** Turns `2026-08-02T01-23-45-678Z` back into a timestamp. */

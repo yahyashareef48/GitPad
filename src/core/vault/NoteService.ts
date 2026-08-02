@@ -106,17 +106,30 @@ export class NoteService {
    * Never `unlink`: people lose notes to a stray keystroke, and once sync
    * exists a hard delete propagates to every device within seconds.
    *
-   * The timestamp suffix means repeated deletes of the same name coexist
-   * instead of overwriting each other -- the second delete of "Ideas" must not
-   * destroy the first one sitting in the trash.
+   * `.trash/` MIRRORS the vault's folder structure, so `Work/Standup.pad`
+   * becomes `.trash/Work/Standup (stamp).pad`. That records where the item
+   * came from without a sidecar index that could disagree with reality -- the
+   * path IS the record, and restoring reads it straight back.
+   *
+   * The timestamp means repeated deletes of the same name coexist rather than
+   * overwriting each other: the second delete of "Ideas" must not destroy the
+   * first one already sitting in the trash.
    */
   public async moveToTrash(layout: VaultLayout, target: string): Promise<string> {
-    await this.fs.createDirectory(layout.trashDir);
+    const relativeDir = path.relative(layout.root, path.dirname(target));
+
+    // `.` means the vault root, which mirrors to the trash root.
+    const mirrorDir =
+      relativeDir === '' || relativeDir === '.'
+        ? layout.trashDir
+        : path.join(layout.trashDir, relativeDir);
+
+    await this.fs.createDirectory(mirrorDir);
 
     const extension = path.extname(target);
     const stem = path.basename(target, extension);
     const stamp = new Date(this.clock.now()).toISOString().replace(/[:.]/g, '-');
-    const trashed = path.join(layout.trashDir, `${stem} (${stamp})${extension}`);
+    const trashed = path.join(mirrorDir, `${stem} (${stamp})${extension}`);
 
     await this.fs.rename(target, trashed);
     this.logger.info(`Moved ${target} to trash`);

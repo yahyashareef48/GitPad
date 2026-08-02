@@ -125,13 +125,49 @@ export class InMemoryFileSystem implements FileSystem {
     }
   }
 
+  /**
+   * Moves a file OR a directory, contents and all.
+   *
+   * Directory support matters: `vscode.workspace.fs.rename` moves a whole
+   * subtree, and a fake that silently ignored directories let folder deletion
+   * pass its tests while doing nothing.
+   */
   public async rename(from: string, to: string): Promise<void> {
-    const contents = this.files.get(normalize(from));
+    const source = normalize(from);
+    const destination = normalize(to);
+
+    const contents = this.files.get(source);
 
     if (contents !== undefined) {
-      this.files.delete(normalize(from));
+      this.files.delete(source);
       await this.writeFile(to, contents);
+
+      return;
     }
+
+    if (!this.directories.has(source)) {
+      return;
+    }
+
+    const prefix = `${source}${path.sep}`;
+
+    for (const [filePath, data] of [...this.files]) {
+      if (filePath.startsWith(prefix)) {
+        this.files.delete(filePath);
+        this.files.set(path.join(destination, filePath.slice(prefix.length)), data);
+      }
+    }
+
+    for (const directory of [...this.directories]) {
+      if (directory === source || directory.startsWith(prefix)) {
+        this.directories.delete(directory);
+        this.directories.add(
+          directory === source ? destination : path.join(destination, directory.slice(prefix.length)),
+        );
+      }
+    }
+
+    this.seedDirectory(path.dirname(destination));
   }
 
   public async stat(targetPath: string): Promise<FileStat | undefined> {

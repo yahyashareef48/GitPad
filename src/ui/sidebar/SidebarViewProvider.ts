@@ -380,7 +380,7 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
       const entry = (await this.trash.list(layout)).find((item) => item.id === id);
 
       if (entry !== undefined) {
-        await this.trash.purge(entry);
+        await this.trash.purge(layout, entry);
         await this.refreshTree();
       }
     });

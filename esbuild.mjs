@@ -88,6 +88,7 @@ const integrationTestConfig = {
     'test/integration/settings.test.ts',
     'test/integration/vaultRestore.test.ts',
     'test/integration/padDocument.test.ts',
+    'test/integration/trash.test.ts',
   ],
   outdir: 'dist/test',
   platform: 'node',
