@@ -157,6 +157,21 @@ describe('TrashService: deleted folders', () => {
     expect(fs.read(at('Work', 'Nested', 'Two.pad'))).toBe('2');
   });
 
+  it('does not treat part of a folder name as an extension', async () => {
+    // path.extname('Q1.Reviews') is '.Reviews', so splitting blindly would
+    // file it as "Q1 (stamp).Reviews" and restore a differently named folder.
+    const fs = vault({ [at('Q1.Reviews', 'Note.pad')]: 'x' });
+
+    const entry = await deleteAndList(fs, at('Q1.Reviews'));
+
+    expect(entry.name).toBe('Q1.Reviews');
+    expect(entry.kind).toBe('folder');
+
+    await trashOf(fs).restore(layout, entry);
+
+    expect(fs.read(at('Q1.Reviews', 'Note.pad'))).toBe('x');
+  });
+
   it('restores a nested folder to its parent', async () => {
     const fs = vault({ [at('Work', 'Q1', 'Note.pad')]: 'x' });
 

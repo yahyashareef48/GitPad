@@ -125,6 +125,10 @@ export type HostToSidebar =
 export interface TrashItemDto {
   readonly id: string;
   readonly name: string;
+  /** A deleted folder is one entry; the sidebar must not draw it as a note. */
+  readonly kind: 'document' | 'folder';
+  /** Where it will be restored to. Empty string for the vault root. */
+  readonly originalFolder: string;
   /** ISO 8601. Absent for files not deleted by GitPad. */
   readonly deletedAt?: string;
 }

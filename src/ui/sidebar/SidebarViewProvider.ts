@@ -430,6 +430,8 @@ export class SidebarViewProvider implements vscode.WebviewViewProvider, vscode.D
     const items = (await this.trash.list(layout)).map((entry) => ({
       id: entry.id,
       name: entry.name,
+      kind: entry.kind,
+      originalFolder: entry.originalFolder,
       deletedAt: entry.deletedAt,
     }));
 

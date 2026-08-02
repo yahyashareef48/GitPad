@@ -126,8 +126,16 @@ export class NoteService {
 
     await this.fs.createDirectory(mirrorDir);
 
-    const extension = path.extname(target);
-    const stem = path.basename(target, extension);
+    /*
+     * A folder has no extension, whatever its name looks like.
+     *
+     * `path.extname('Q1.Reviews')` is '.Reviews', so splitting blindly would
+     * file the folder as "Q1 (stamp).Reviews" -- and restoring would put back
+     * a differently named folder.
+     */
+    const isFolder = (await this.fs.stat(target))?.kind === 'directory';
+    const extension = isFolder ? '' : path.extname(target);
+    const stem = isFolder ? path.basename(target) : path.basename(target, extension);
     const stamp = new Date(this.clock.now()).toISOString().replace(/[:.]/g, '-');
     const trashed = path.join(mirrorDir, `${stem} (${stamp})${extension}`);
 

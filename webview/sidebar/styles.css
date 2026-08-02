@@ -405,3 +405,15 @@ body {
 .section__action:hover {
   text-decoration: underline;
 }
+
+/* Where a trashed item will be restored to. Hidden on root items, which have
+   no folder to name. */
+.trash-row__folder {
+  overflow: hidden;
+  flex: 0 1 auto;
+  padding-left: 6px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 0.85em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

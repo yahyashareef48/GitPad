@@ -67,9 +67,16 @@ export function TrashList({ items, onRestore, onPurge, onEmpty }: TrashListProps
         ? items.map((item) => (
             <div key={item.id} className="row row--flat trash-row" title={formatDeleted(item)}>
               <span className="row__icon">
-                <PadIcon size={14} />
+                {/* A deleted folder is one entry containing everything that
+                    was inside it, so it must not look like a note. */}
+                {item.kind === 'folder' ? <Icon name="folder" /> : <PadIcon size={14} />}
               </span>
               <span className="row__name">{item.name}</span>
+
+              {/* Where it goes back to, so restoring is never a surprise. */}
+              {item.originalFolder === '' ? null : (
+                <span className="trash-row__folder">{item.originalFolder}</span>
+              )}
 
               <button
                 type="button"
