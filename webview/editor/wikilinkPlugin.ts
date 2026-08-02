@@ -23,8 +23,8 @@ export function createWikilinkPlugin(onOpen: (target: string) => void): Plugin<D
 
     state: {
       init: (_config, state) => decorate(state.doc),
-      // Only recomputed when the document actually changed; a selection move
-      // does not alter where the links are.
+      // Only the document affects where links are; the caret does not, because
+      // the syntax stays hidden regardless of where it sits.
       apply: (tr, previous) => (tr.docChanged ? decorate(tr.doc) : previous),
     },
 
@@ -42,16 +42,13 @@ export function createWikilinkPlugin(onOpen: (target: string) => void): Plugin<D
         }
 
         /*
-         * Only a modified click navigates.
+         * A plain click navigates, as it does in Obsidian and Notion.
          *
-         * A plain click has to keep placing the caret, because the link lives
-         * in editable text -- making it navigate would leave no way to edit a
-         * line that happens to contain one.
+         * Requiring Ctrl was defensible -- the link sits in editable text, so
+         * navigating costs you the ability to click into it -- but it is not
+         * what anyone expects. Editing is still reachable: the brackets are
+         * revealed when the caret is inside the link, and arrow keys reach it.
          */
-        if (!event.ctrlKey && !event.metaKey) {
-          return false;
-        }
-
         onOpen(target);
 
         return true;
@@ -60,6 +57,18 @@ export function createWikilinkPlugin(onOpen: (target: string) => void): Plugin<D
   });
 }
 
+/**
+ * Builds the decorations.
+ *
+ * A link is drawn as three ranges rather than one: the opening syntax, the
+ * visible label, and the closing syntax. The syntax ranges are ALWAYS hidden,
+ * so a link reads as a note and never as punctuation -- including while the
+ * caret is inside it.
+ *
+ * The text itself is untouched, so the file on disk still contains ordinary
+ * `[[Note]]` markdown, and the hidden characters remain addressable for
+ * backspace and selection.
+ */
 function decorate(doc: ProseNode): DecorationSet {
   const decorations: Decoration[] = [];
 
@@ -85,12 +94,22 @@ function decorate(doc: ProseNode): DecorationSet {
         continue;
       }
 
+      const from = pos + match.index;
+      const to = from + match[0].length;
+
+      // Everything up to the label: `[[` alone, or `[[target|` when the link
+      // carries a display label.
+      const labelLength = (match[2] ?? match[1] ?? '').length;
+      const labelFrom = to - 2 - labelLength;
+
       decorations.push(
-        Decoration.inline(pos + match.index, pos + match.index + match[0].length, {
+        Decoration.inline(from, labelFrom, { class: 'gitpad-wikilink__syntax' }),
+        Decoration.inline(labelFrom, to - 2, {
           class: 'gitpad-wikilink',
           'data-wikilink-target': target,
-          title: `Ctrl+click to open “${target}”`,
+          title: `Open “${target}”`,
         }),
+        Decoration.inline(to - 2, to, { class: 'gitpad-wikilink__syntax' }),
       );
     }
   });

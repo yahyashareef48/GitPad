@@ -131,6 +131,25 @@ export interface RecentItemDto {
 
 export type EditorTextSize = 'small' | 'medium' | 'large';
 
+/** One note offered by `[[` autocomplete. */
+export interface LinkTargetDto {
+  readonly title: string;
+  /**
+   * Folder shown beside the title, and ONLY when another note shares that
+   * title. A folder on every row is noise; a folder on the ambiguous ones is
+   * the difference between picking correctly and guessing.
+   */
+  readonly folder?: string;
+  /**
+   * What to write inside `[[ ]]`.
+   *
+   * Path-qualified when the title is ambiguous. Inserting the bare title
+   * there would resolve by proximity and could open a different note from
+   * the one picked from the list.
+   */
+  readonly insert: string;
+}
+
 /** Note identity and timestamps, shown in the editor's title header. */
 export interface NoteMetaDto {
   /** The filename stem -- the title IS the filename (plan 2.6). */
@@ -182,6 +201,8 @@ export type HostToEditor =
   | { readonly type: 'settings'; readonly textSize: EditorTextSize }
   /** Sent after a save or rename, so the header's timestamps stay current. */
   | { readonly type: 'meta'; readonly meta: NoteMetaDto }
+  /** Notes offered by `[[` autocomplete. */
+  | { readonly type: 'noteTitles'; readonly titles: readonly LinkTargetDto[] }
   /**
    * Replace the editor's content wholesale.
    *

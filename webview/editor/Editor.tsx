@@ -1,9 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 
-import type { EditorToHost, HostToEditor, NoteMetaDto } from '../../src/shared/protocol';
+import type {
+  EditorToHost,
+  HostToEditor,
+  LinkTargetDto,
+  NoteMetaDto,
+} from '../../src/shared/protocol';
 import type { Bridge } from '../shared/rpc';
 import { NoteHeader } from './NoteHeader';
+import { WikilinkSuggest, useMatches } from './WikilinkSuggest';
 import { useCrepe } from './useCrepe';
+import { completeWikilink, type SuggestState } from './suggestPlugin';
 
 /*
  * The editing surface: Milkdown's Crepe.
@@ -40,12 +47,24 @@ function applyTextSize(size: string): void {
 export function Editor({ bridge }: EditorProps) {
   const [initial, setInitial] = useState<string | undefined>(undefined);
   const [meta, setMeta] = useState<NoteMetaDto | undefined>(undefined);
+  const [titles, setTitles] = useState<readonly LinkTargetDto[]>([]);
+  const [suggest, setSuggest] = useState<SuggestState | undefined>(undefined);
+  const [highlighted, setHighlighted] = useState(0);
   const pending = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const latest = useRef<string | undefined>(undefined);
 
-  const { container, ready, setMarkdown } = useCrepe({
+  const { container, ready, setMarkdown, getView } = useCrepe({
     initial,
     onOpenWikilink: (target) => bridge.post({ type: 'openWikilink', target }),
+    suggest: {
+      onChange: (next) => {
+        setSuggest(next);
+        // Reset to the top whenever the query changes, so the first result
+        // is what Enter takes.
+        setHighlighted(0);
+      },
+      onKeyDown: (key) => suggestKeyRef.current(key),
+    },
     onChange: (markdown) => {
       latest.current = markdown;
 
@@ -71,6 +90,10 @@ export function Editor({ bridge }: EditorProps) {
 
         case 'meta':
           setMeta(message.meta);
+          break;
+
+        case 'noteTitles':
+          setTitles(message.titles);
           break;
 
         case 'settings':
@@ -132,6 +155,64 @@ export function Editor({ bridge }: EditorProps) {
     };
   }, [bridge]);
 
+  const matches = useMatches(titles, suggest?.query ?? '');
+
+  const insert = (entry: LinkTargetDto): void => {
+    const view = getView();
+
+    if (view !== undefined && suggest !== undefined) {
+      // `insert`, not `title`: path-qualified when the title is ambiguous.
+      completeWikilink(view, suggest, entry.insert);
+    }
+
+    setSuggest(undefined);
+  };
+
+  /*
+   * Keyboard handling for the popup.
+   *
+   * Held in a ref because the ProseMirror plugin captures the handler once,
+   * while this closure changes with every render as the query and highlight
+   * move. Without the ref the plugin would call a stale version.
+   */
+  const suggestKeyRef = useRef<(key: string) => boolean>(() => false);
+
+  suggestKeyRef.current = (key: string): boolean => {
+    if (suggest === undefined) {
+      return false;
+    }
+
+    if (key === 'Escape') {
+      setSuggest(undefined);
+      return true;
+    }
+
+    if (key === 'ArrowDown') {
+      setHighlighted((index) => (index + 1) % Math.max(matches.length, 1));
+      return true;
+    }
+
+    if (key === 'ArrowUp') {
+      setHighlighted((index) => (index - 1 + matches.length) % Math.max(matches.length, 1));
+      return true;
+    }
+
+    if (key === 'Enter' || key === 'Tab') {
+      const entry = matches[highlighted];
+
+      // With no match, Enter is left alone: the user is naming a note that
+      // does not exist yet, and typing should not be hijacked.
+      if (entry === undefined) {
+        return false;
+      }
+
+      insert(entry);
+      return true;
+    }
+
+    return false;
+  };
+
   return (
     <div className="page">
       {initial === undefined || !ready ? <div className="loading">Loading…</div> : null}
@@ -141,6 +222,16 @@ export function Editor({ bridge }: EditorProps) {
       )}
 
       <div className="crepe" ref={container} />
+
+      {suggest === undefined ? null : (
+        <WikilinkSuggest
+          state={suggest}
+          titles={titles}
+          selected={highlighted}
+          onSelect={insert}
+          onHighlight={setHighlighted}
+        />
+      )}
     </div>
   );
 }

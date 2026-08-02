@@ -37,24 +37,7 @@ export class LinkIndex {
   public async build(root: string): Promise<LinkGraph> {
     const files = await this.collect(root);
 
-    /*
-     * Targets resolve by filename stem, not by path.
-     *
-     * `[[Standup]]` should find the note wherever it lives, because that is
-     * what makes wikilinks worth having -- a link that breaks when you move a
-     * note into a folder is a link nobody trusts.
-     */
-    const byKey = new Map<string, string>();
-
-    for (const file of files) {
-      const key = linkKey(path.parse(file).name);
-
-      // First writer wins, and files are collected depth-first in a stable
-      // order, so a duplicate title resolves the same way on every machine.
-      if (!byKey.has(key)) {
-        byKey.set(key, file);
-      }
-    }
+    const byKey = groupByTitle(files);
 
     const forward = new Map<string, string[]>();
     const backward = new Map<string, string[]>();
@@ -68,7 +51,7 @@ export class LinkIndex {
       }
 
       for (const link of extractWikilinks(text)) {
-        const target = byKey.get(linkKey(link.target));
+        const target = resolveIn(byKey, link.target, file);
 
         if (target === undefined) {
           push(unresolved, file, link.target);
@@ -122,6 +105,104 @@ export class LinkIndex {
       return undefined;
     }
   }
+}
+
+/**
+ * Groups note paths by their title, keeping ALL candidates.
+ *
+ * Two notes can share a title -- `test.pad` at the root and `Work/test.pad`
+ * are both legal, and a vault of any size eventually has some. Storing only
+ * the first would make resolution depend on scan order.
+ */
+export function groupByTitle(files: readonly string[]): ReadonlyMap<string, readonly string[]> {
+  const byKey = new Map<string, string[]>();
+
+  for (const file of files) {
+    push(byKey, linkKey(path.parse(file).name), file);
+  }
+
+  return byKey;
+}
+
+/**
+ * Picks which note `target` means, from the point of view of `sourceFile`.
+ *
+ * The rule, in order:
+ *   1. a note with that title in the SAME folder as the link
+ *   2. otherwise the shallowest match, ties broken alphabetically
+ *
+ * Same-folder-first is what Obsidian does, and it is the only rule that makes
+ * duplicate titles usable: `Work/meeting.pad` linking to `[[notes]]` should
+ * find `Work/notes.pad`, not a `notes.pad` on the other side of the vault.
+ *
+ * Exported so the editor's click handler resolves through the SAME function
+ * the index does. When they were separate, both said "first match wins" while
+ * disagreeing about what first meant -- so the sidebar could report a link
+ * that clicking somewhere else.
+ */
+export function resolveIn(
+  byTitle: ReadonlyMap<string, readonly string[]>,
+  target: string,
+  sourceFile?: string,
+): string | undefined {
+  /*
+   * A target may be path-qualified: `[[Work/test]]` rather than `[[test]]`.
+   *
+   * Autocomplete writes that form when a title is ambiguous, because the plain
+   * title would resolve by proximity and could open a different note from the
+   * one the user picked from the list.
+   */
+  const qualified = /[\\/]/.test(target);
+
+  if (qualified) {
+    const wanted = target.split(/[\\/]/).filter((part) => part !== '');
+    const stem = wanted[wanted.length - 1] ?? '';
+
+    for (const candidate of byTitle.get(linkKey(stem)) ?? []) {
+      const parts = candidate.split(/[\\/]/);
+      const tail = parts.slice(-wanted.length);
+
+      // Compared as a path SUFFIX, so `Work/test` matches
+      // `/vault/Work/test.pad` without the link needing the vault's location.
+      const matches = tail.every(
+        (part, index) => linkKey(part.replace(/\.[^.]+$/, '')) === linkKey(wanted[index] ?? ''),
+      );
+
+      if (matches) {
+        return candidate;
+      }
+    }
+
+    return undefined;
+  }
+
+  const candidates = byTitle.get(linkKey(target));
+
+  if (candidates === undefined || candidates.length === 0) {
+    return undefined;
+  }
+
+  if (candidates.length === 1) {
+    return candidates[0];
+  }
+
+  if (sourceFile !== undefined) {
+    const sameFolder = candidates.find(
+      (candidate) => path.dirname(candidate) === path.dirname(sourceFile),
+    );
+
+    if (sameFolder !== undefined) {
+      return sameFolder;
+    }
+  }
+
+  // Shallowest wins, then alphabetical -- deterministic, and independent of
+  // the order the vault happened to be scanned in.
+  return [...candidates].sort((left, right) => {
+    const depth = left.split(path.sep).length - right.split(path.sep).length;
+
+    return depth !== 0 ? depth : left.localeCompare(right);
+  })[0];
 }
 
 function push(map: Map<string, string[]>, key: string, value: string): void {

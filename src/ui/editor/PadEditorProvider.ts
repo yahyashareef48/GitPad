@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 
 import type { Clock } from '../../core/ports/Clock';
-import { linkKey } from '../../core/links/wikilink';
+import { groupByTitle, resolveIn } from '../../core/links/LinkIndex';
 import type { NoteService } from '../../core/vault/NoteService';
 import { NOTE_EXTENSION } from '../../core/vault/VaultLayout';
 import { VaultTree } from '../../core/vault/VaultTree';
@@ -14,6 +14,7 @@ import type {
   EditorTextSize,
   EditorToHost,
   HostToEditor,
+  LinkTargetDto,
   NoteMetaDto,
 } from '../../shared/protocol';
 import type { VaultController } from '../vault/VaultController';
@@ -181,6 +182,10 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
             textSize: readTextSize(),
             meta: readMeta(document),
           } satisfies HostToEditor);
+
+          // Titles for `[[` autocomplete. Sent after init so the editor can
+          // render before the vault scan finishes.
+          void this.postNoteTitles(panel, document.uri.fsPath);
           break;
 
         case 'edit':
@@ -193,7 +198,7 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
           break;
 
         case 'openWikilink':
-          void this.openWikilink(message.target);
+          void this.openWikilink(message.target, document.uri.fsPath);
           break;
       }
     });
@@ -225,8 +230,18 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       }
     });
 
+    /*
+     * Titles are refreshed when the vault changes, not only on open.
+     * Otherwise a note created after this editor opened would be missing
+     * from its autocomplete until the tab was reopened.
+     */
+    const vaultListener = this.vault.onDidChangeContents(() => {
+      void this.postNoteTitles(panel, document.uri.fsPath);
+    });
+
     panel.onDidDispose(() => {
       settingsListener.dispose();
+      vaultListener.dispose();
     });
   }
 
@@ -294,7 +309,7 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
    * Resolution matches the index: by filename stem, case-insensitively, so a
    * link keeps working when the note is moved or its title recased.
    */
-  private async openWikilink(target: string): Promise<void> {
+  private async openWikilink(target: string, source: string): Promise<void> {
     const layout = this.vault.currentLayout;
 
     if (layout === undefined) {
@@ -302,7 +317,12 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
     }
 
     const tree = new VaultTree(this.fs, this.logger, new Set([NOTE_EXTENSION]));
-    const match = findByTitle(await tree.build(layout.root), linkKey(target));
+    const files = collectPaths(await tree.build(layout.root));
+
+    // Resolved through the SAME function the index uses, and from the point
+    // of view of the note the link is IN, so a duplicate title resolves to
+    // the nearest one -- and to the same note the sidebar reported.
+    const match = resolveIn(groupByTitle(files), target, source);
 
     if (match !== undefined) {
       await vscode.commands.executeCommand(
@@ -342,6 +362,40 @@ export class PadEditorProvider implements vscode.CustomEditorProvider<PadDocumen
       );
     } catch (error) {
       this.logger.error(`Could not create a note for ${target}`, error);
+    }
+  }
+
+  /**
+   * Sends every note title in the vault, for `[[` autocomplete.
+   *
+   * Titles rather than paths: a wikilink resolves by title, so offering a
+   * path would let the user pick something the syntax cannot express.
+   */
+  private async postNoteTitles(panel: vscode.WebviewPanel, exclude: string): Promise<void> {
+    const layout = this.vault.currentLayout;
+
+    if (layout === undefined) {
+      return;
+    }
+
+    try {
+      const tree = new VaultTree(this.fs, this.logger, new Set([NOTE_EXTENSION]));
+      const titles = buildLinkTargets(
+        collectPaths(await tree.build(layout.root)),
+        layout.root,
+        exclude,
+      );
+
+      // Logged at info because "autocomplete shows nothing" is answerable
+      // from here: either the scan found no titles, or it found them and the
+      // fault is in the webview.
+      this.logger.info(`Sent ${titles.length} note titles for autocomplete`);
+
+      void panel.webview.postMessage({ type: 'noteTitles', titles } satisfies HostToEditor);
+    } catch (error) {
+      // Autocomplete is a convenience; failing to populate it must not stop
+      // the note opening.
+      this.logger.warn('Could not list note titles for autocomplete', error);
     }
   }
 
@@ -448,27 +502,68 @@ function readMeta(document: PadDocument): NoteMetaDto {
   };
 }
 
-/** Depth-first search for a document whose filename stem matches `key`. */
-function findByTitle(
-  nodes: readonly { id: string; name: string; children?: readonly unknown[] }[],
-  key: string,
-): string | undefined {
-  for (const node of nodes) {
-    if (node.children === undefined) {
-      if (linkKey(node.name) === key) {
-        return node.id;
-      }
-    } else {
-      const found = findByTitle(
-        node.children as readonly { id: string; name: string; children?: readonly unknown[] }[],
-        key,
-      );
+/** Every document path in the tree, depth-first. */
+function collectPaths(
+  nodes: readonly { id: string; children?: readonly unknown[] }[],
+): readonly string[] {
+  const paths: string[] = [];
 
-      if (found !== undefined) {
-        return found;
+  const walk = (list: readonly { id: string; children?: readonly unknown[] }[]): void => {
+    for (const node of list) {
+      if (node.children === undefined) {
+        paths.push(node.id);
+      } else {
+        walk(node.children as readonly { id: string; children?: readonly unknown[] }[]);
       }
     }
+  };
+
+  walk(nodes);
+
+  return paths;
+}
+
+/**
+ * Builds the autocomplete list.
+ *
+ * The note being edited is excluded -- offering to link a note to itself is
+ * never what someone means, and it wastes the top of a short list.
+ *
+ * A folder is attached only where a title is ambiguous, and the inserted
+ * text is path-qualified in exactly those cases, so picking a row opens that
+ * row rather than whichever same-named note happens to be nearest.
+ */
+function buildLinkTargets(
+  files: readonly string[],
+  root: string,
+  exclude: string,
+): readonly LinkTargetDto[] {
+  const others = files.filter((file) => file !== exclude);
+  const counts = new Map<string, number>();
+
+  for (const file of others) {
+    const key = path.parse(file).name.toLowerCase();
+
+    counts.set(key, (counts.get(key) ?? 0) + 1);
   }
 
-  return undefined;
+  return others.map((file) => {
+    const title = path.parse(file).name;
+    const ambiguous = (counts.get(title.toLowerCase()) ?? 0) > 1;
+
+    if (!ambiguous) {
+      return { title, insert: title };
+    }
+
+    const relative = path.relative(root, path.dirname(file));
+    // An empty relative path means the vault root, which has no name of
+    // its own -- shown as "/" so the row is not blank.
+    const folder = relative === "" ? "/" : relative.split(path.sep).join("/");
+
+    return {
+      title,
+      folder,
+      insert: relative === "" ? title : `${folder}/${title}`,
+    };
+  });
 }

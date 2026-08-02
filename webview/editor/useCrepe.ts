@@ -1,10 +1,12 @@
 import { Crepe } from '@milkdown/crepe';
-import { prosePluginsCtx, remarkStringifyOptionsCtx } from '@milkdown/kit/core';
+import { editorViewCtx, prosePluginsCtx, remarkStringifyOptionsCtx } from '@milkdown/kit/core';
 import { replaceAll } from '@milkdown/kit/utils';
 import { useEffect, useRef, useState } from 'react';
 
 import { REMARK_STRINGIFY_OPTIONS } from '../../src/shared/remarkSettings';
 import { createWikilinkPlugin } from './wikilinkPlugin';
+import type { SuggestHandlers } from './suggestPlugin';
+import { createWikilinkSuggestPlugin } from './suggestPlugin';
 
 /*
  * Mounts a Crepe editor into a DOM node and keeps it in step with the host.
@@ -21,9 +23,11 @@ interface UseCrepeOptions {
   readonly onChange: (markdown: string) => void;
   /** Called when a `[[wikilink]]` is followed. */
   readonly onOpenWikilink: (target: string) => void;
+  /** Drives the `[[` note picker. */
+  readonly suggest: SuggestHandlers;
 }
 
-export function useCrepe({ initial, onChange, onOpenWikilink }: UseCrepeOptions) {
+export function useCrepe({ initial, onChange, onOpenWikilink, suggest }: UseCrepeOptions) {
   const container = useRef<HTMLDivElement>(null);
   const crepe = useRef<Crepe | undefined>(undefined);
   const [ready, setReady] = useState(false);
@@ -40,6 +44,9 @@ export function useCrepe({ initial, onChange, onOpenWikilink }: UseCrepeOptions)
 
   const onOpenWikilinkRef = useRef(onOpenWikilink);
   onOpenWikilinkRef.current = onOpenWikilink;
+
+  const suggestRef = useRef(suggest);
+  suggestRef.current = suggest;
 
   /*
    * Set while applying markdown that came FROM the host -- undo, redo, revert,
@@ -115,6 +122,10 @@ export function useCrepe({ initial, onChange, onOpenWikilink }: UseCrepeOptions)
       ctx.update(prosePluginsCtx, (plugins) => [
         ...plugins,
         createWikilinkPlugin((target) => onOpenWikilinkRef.current(target)),
+        createWikilinkSuggestPlugin({
+          onChange: (next) => suggestRef.current.onChange(next),
+          onKeyDown: (key) => suggestRef.current.onKeyDown(key),
+        }),
       ]);
     });
 
@@ -158,7 +169,10 @@ export function useCrepe({ initial, onChange, onOpenWikilink }: UseCrepeOptions)
     }
   };
 
-  return { container, ready, setMarkdown };
+  /** The live ProseMirror view, for commands that need to dispatch. */
+  const getView = () => crepe.current?.editor.ctx.get(editorViewCtx);
+
+  return { container, ready, setMarkdown, getView };
 }
 
 async function rejectUpload(): Promise<string> {

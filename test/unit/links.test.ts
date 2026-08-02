@@ -144,6 +144,56 @@ describe('LinkIndex', () => {
     ]);
   });
 
+  it('prefers a same-name note in the same folder as the link', async () => {
+    // Two notes called "test": one at the root, one in Work. A link written
+    // inside Work should mean the nearby one.
+    const fs = new InMemoryFileSystem({
+      [note('test.pad')]: 'root version',
+      [note('Work', 'test.pad')]: 'work version',
+      [note('Work', 'source.pad')]: 'see [[test]]',
+    });
+
+    expect(await index(fs).build(VAULT).then((g) => g.forward.get(note('Work', 'source.pad')))).toEqual(
+      [note('Work', 'test.pad')],
+    );
+  });
+
+  it('falls back to the shallowest match when none is in the same folder', async () => {
+    // Deterministic, and independent of the order the vault was scanned in.
+    const fs = new InMemoryFileSystem({
+      [note('test.pad')]: 'root version',
+      [note('Work', 'test.pad')]: 'work version',
+      [note('Other', 'source.pad')]: 'see [[test]]',
+    });
+
+    expect(
+      await index(fs).build(VAULT).then((g) => g.forward.get(note('Other', 'source.pad'))),
+    ).toEqual([note('test.pad')]);
+  });
+
+  it('honours a path-qualified target, overriding proximity', async () => {
+    // What autocomplete inserts for an ambiguous title. Without this the link
+    // would resolve to the nearest same-named note rather than the one picked.
+    const fs = new InMemoryFileSystem({
+      [note('test.pad')]: 'root version',
+      [note('Work', 'test.pad')]: 'work version',
+      [note('Work', 'source.pad')]: 'see [[/test]]'.replace('/test', 'test'),
+    });
+
+    fs.seedFile(note('Work', 'source.pad'), 'see [[test]]');
+    expect(await index(fs).build(VAULT).then((g) => g.forward.get(note('Work', 'source.pad')))).toEqual(
+      [note('Work', 'test.pad')],
+    );
+
+    // Now qualified: the far one, explicitly.
+    fs.seedFile(note('Work', 'source.pad'), 'see [[Other/test]]');
+    fs.seedFile(note('Other', 'test.pad'), 'third version');
+
+    expect(await index(fs).build(VAULT).then((g) => g.forward.get(note('Work', 'source.pad')))).toEqual(
+      [note('Other', 'test.pad')],
+    );
+  });
+
   it('skips plumbing and unclaimed file types', async () => {
     const fs = new InMemoryFileSystem({
       [note('A.pad')]: '[[B]]',
