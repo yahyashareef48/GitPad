@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GitPad launch image — tagline options</title>
+    <style>
+      /*
+       * The taglines that were considered, rendered side by side at real size.
+       *
+       * Kept because the next time this card is recut, the useful question is
+       * not "what could the tagline be" but "which of these did we already look
+       * at, and why did the chosen one win". launch-image.html holds the one
+       * actually in use.
+       *
+       * Rendered at --s: 1 -- this file is for comparing, not exporting.
+       */
+
+      :root {
+        --s: 1;
+        --bg: #1f1f1f;
+        --fg: #cccccc;
+        --muted: #9d9d9d;
+        --accent: #f05133;
+      }
+
+      html,
+      body {
+        margin: 0;
+        background: #0d0d0d;
+      }
+
+      body {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: calc(12px * var(--s));
+        padding: calc(40px * var(--s)) 0;
+        font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      }
+
+      /* Sits outside the card so it can never land in a screenshot. */
+      .label {
+        font-size: 15px;
+        color: #6f6f6f;
+        letter-spacing: 0.5px;
+      }
+
+      .label--chosen {
+        color: var(--accent);
+      }
+
+      .card {
+        position: relative;
+        width: calc(1200px * var(--s));
+        height: calc(630px * var(--s));
+        background: var(--bg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: calc(34px * var(--s));
+      }
+
+      .card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 38%, rgba(240, 81, 51, 0.14), transparent 55%);
+      }
+
+      .card > * {
+        position: relative;
+      }
+
+      .mark {
+        width: calc(152px * var(--s));
+        height: calc(152px * var(--s));
+        color: var(--accent);
+      }
+
+      .wordmark {
+        margin: 0;
+        font-size: calc(92px * var(--s));
+        font-weight: 600;
+        letter-spacing: calc(-2px * var(--s));
+        color: var(--fg);
+        line-height: 1;
+      }
+
+      .tagline {
+        margin: 0;
+        font-size: calc(32px * var(--s));
+        font-weight: 400;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.4;
+      }
+
+      .tagline strong {
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      .footer {
+        position: absolute;
+        bottom: calc(44px * var(--s));
+        display: flex;
+        align-items: center;
+        gap: calc(14px * var(--s));
+        font-size: calc(20px * var(--s));
+        color: var(--muted);
+      }
+
+      .dot {
+        width: calc(5px * var(--s));
+        height: calc(5px * var(--s));
+        border-radius: 50%;
+        background: #4a4a4a;
+      }
+    </style>
+  </head>
+  <body>
+    <p class="label">Option 1 — leads with ownership, which is the actual motivation</p>
+    <div class="card">
+      <svg class="mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+          <path d="M150,182 A62,62 0 1 1 184,112" />
+          <path d="M184,112 V150" />
+        </g>
+        <circle cx="184" cy="160" r="16" fill="currentColor" />
+      </svg>
+      <h1 class="wordmark">GitPad</h1>
+      <p class="tagline">Notes <strong>you own</strong>,<br />in the editor you already use.</p>
+      <div class="footer">
+        <span>Free and open source</span>
+        <span class="dot"></span>
+        <span>VS Code Marketplace</span>
+      </div>
+    </div>
+
+    <p class="label">Option 2 — more attitude, but claims something about the reader</p>
+    <div class="card">
+      <svg class="mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+          <path d="M150,182 A62,62 0 1 1 184,112" />
+          <path d="M184,112 V150" />
+        </g>
+        <circle cx="184" cy="160" r="16" fill="currentColor" />
+      </svg>
+      <h1 class="wordmark">GitPad</h1>
+      <p class="tagline">The notes app your editor <strong>was missing</strong>.</p>
+      <div class="footer">
+        <span>Free and open source</span>
+        <span class="dot"></span>
+        <span>VS Code Marketplace</span>
+      </div>
+    </div>
+
+    <p class="label">Option 3 — plainest, describes the behaviour</p>
+    <div class="card">
+      <svg class="mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+          <path d="M150,182 A62,62 0 1 1 184,112" />
+          <path d="M184,112 V150" />
+        </g>
+        <circle cx="184" cy="160" r="16" fill="currentColor" />
+      </svg>
+      <h1 class="wordmark">GitPad</h1>
+      <p class="tagline">Write notes without leaving <strong>VS Code</strong>.</p>
+      <div class="footer">
+        <span>Free and open source</span>
+        <span class="dot"></span>
+        <span>VS Code Marketplace</span>
+      </div>
+    </div>
+
+    <p class="label label--chosen">Option 4 — chosen: shortest, and it survives being scaled down</p>
+    <div class="card">
+      <svg class="mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+          <path d="M150,182 A62,62 0 1 1 184,112" />
+          <path d="M184,112 V150" />
+        </g>
+        <circle cx="184" cy="160" r="16" fill="currentColor" />
+      </svg>
+      <h1 class="wordmark">GitPad</h1>
+      <p class="tagline">Notes, <strong>next to your code</strong>.</p>
+      <div class="footer">
+        <span>Free and open source</span>
+        <span class="dot"></span>
+        <span>VS Code Marketplace</span>
+      </div>
+    </div>
+  </body>
+</html>

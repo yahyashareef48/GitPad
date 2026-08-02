@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>GitPad launch image</title>
+    <style>
+      /*
+       * The launch/social card, kept as markup rather than a binary. Text stays
+       * editable and the mark stays vector, so recutting it for a new tagline or
+       * a different aspect ratio is an edit, not a redraw.
+       *
+       * To export: open in a browser, F12, select .card in Elements, then
+       * Ctrl+Shift+P and "Capture node screenshot".
+       */
+
+      :root {
+        /* Every dimension is a multiple of this, so the card renders at any
+           resolution without the layout shifting. 1 = 1200x630, the LinkedIn
+           landscape size; 2 = 2400x1260, which is what to export so it stays
+           sharp on high-DPI screens. */
+        --s: 2;
+
+        /* VS Code Dark Modern, so the image matches what people see once they
+           install. Copied from the theme rather than eyeballed. */
+        --bg: #1f1f1f;
+        --fg: #cccccc;
+        --muted: #9d9d9d;
+
+        /* The git orange the extension icon already uses. */
+        --accent: #f05133;
+      }
+
+      html,
+      body {
+        margin: 0;
+        /* Deliberately not the card colour: the surround has to be
+           distinguishable, or you cannot see what you are about to capture. */
+        background: #0d0d0d;
+      }
+
+      body {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      }
+
+      .card {
+        position: relative;
+        width: calc(1200px * var(--s));
+        height: calc(630px * var(--s));
+        background: var(--bg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: calc(34px * var(--s));
+      }
+
+      /* Faint warm glow behind the mark. Without it the card is a flat dark
+         rectangle, which reads as a broken or empty image in a feed. */
+      .card::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 38%, rgba(240, 81, 51, 0.14), transparent 55%);
+      }
+
+      .card > * {
+        position: relative;
+      }
+
+      .mark {
+        width: calc(152px * var(--s));
+        height: calc(152px * var(--s));
+        color: var(--accent);
+      }
+
+      .wordmark {
+        margin: 0;
+        font-size: calc(92px * var(--s));
+        font-weight: 600;
+        letter-spacing: calc(-2px * var(--s));
+        color: var(--fg);
+        line-height: 1;
+      }
+
+      .tagline {
+        margin: 0;
+        font-size: calc(32px * var(--s));
+        font-weight: 400;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.4;
+      }
+
+      .tagline strong {
+        color: var(--fg);
+        font-weight: 500;
+      }
+
+      .footer {
+        position: absolute;
+        bottom: calc(44px * var(--s));
+        display: flex;
+        align-items: center;
+        gap: calc(14px * var(--s));
+        font-size: calc(20px * var(--s));
+        color: var(--muted);
+      }
+
+      .dot {
+        width: calc(5px * var(--s));
+        height: calc(5px * var(--s));
+        border-radius: 50%;
+        background: #4a4a4a;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <!-- Same paths as icon.svg, inlined so the file is self-contained and
+           captures cleanly with nothing left to load. -->
+      <svg class="mark" viewBox="0 0 256 256" fill="none" aria-hidden="true">
+        <g stroke="currentColor" stroke-width="20" stroke-linecap="round">
+          <path d="M150,182 A62,62 0 1 1 184,112" />
+          <path d="M184,112 V150" />
+        </g>
+        <circle cx="184" cy="160" r="16" fill="currentColor" />
+      </svg>
+
+      <h1 class="wordmark">GitPad</h1>
+
+      <p class="tagline">Notes, <strong>next to your code</strong>.</p>
+
+      <div class="footer">
+        <span>Free and open source</span>
+        <span class="dot"></span>
+        <span>VS Code Marketplace</span>
+      </div>
+    </div>
+  </body>
+</html>
